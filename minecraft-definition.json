@@ -1,0 +1,115 @@
+{
+  "meta": {
+    "name": "Minecraft Java Edition",
+    "version": "1.21.11",
+    "author": "PaperMC"
+  },
+  "compat": {
+    "os": ["linux"],
+    "arch": ["x86_64", "aarch64"]
+  },
+  "install": {
+    "script": "https://raw.githubusercontent.com/karutoil/karumanage-minecraft/refs/heads/main/minecraft-installer.sh",
+    "dir": "/opt/minecraft",
+    "deps": ["curl", "openjdk-21-jre-headless"]
+  },
+  "uninstall": {
+    "script": "https://raw.githubusercontent.com/karutoil/karumanage-minecraft/refs/heads/main/minecraft-uninstall.sh",
+    "keepFilesSupported": true
+  },
+  "runtime": {
+    "start": "systemctl start minecraft-server",
+    "stop": "systemctl stop minecraft-server",
+    "restart": "systemctl restart minecraft-server",
+    "cwd": "/opt/minecraft",
+    "env": {
+      "JAVA_OPTS": "-Xmx2048M -Xms2048M",
+      "PAPER_JAR_URL": "https://fill-data.papermc.io/v1/objects/b727f13945dd442cd2bc1de6c64680e8630e7f54ba259aac7687e9c7c3cc18a3/paper-1.21.11-97.jar"
+    },
+    "process": {
+      "match": "paper-server.jar",
+      "pidFile": "/var/run/minecraft-server.pid"
+    }
+  },
+  "metrics": {
+    "cpu": {
+      "method": "pid"
+    },
+    "memory": {
+      "method": "pid"
+    },
+    "players": {
+      "method": "log_parse",
+      "file": "/opt/minecraft/logs/latest.log",
+      "regex": "\\[(.*?)\\].*\\[(.*?)\\].*joined the game"
+    }
+  },
+  "logs": {
+    "main": "/opt/minecraft/logs/latest.log",
+    "rotate": {
+      "strategy": "size",
+      "maxBytes": 52428800,
+      "keep": 5
+    }
+  },
+  "files": {
+    "editable": [
+      {
+        "path": "/opt/minecraft/server.properties",
+        "format": "properties"
+      },
+      {
+        "path": "/opt/minecraft/paper-global.yml",
+        "format": "yaml"
+      },
+      {
+        "path": "/opt/minecraft/spigot.yml",
+        "format": "yaml"
+      }
+    ]
+  },
+  "ports": [
+    {
+      "name": "game",
+      "protocol": "tcp",
+      "port": 25565
+    },
+    {
+      "name": "query",
+      "protocol": "udp",
+      "port": 25565
+    },
+    {
+      "name": "rcon",
+      "protocol": "tcp",
+      "port": 25575
+    }
+  ],
+  "actions": [
+    {
+      "name": "Save World",
+      "cmd": "systemctl exec minecraft-server 'say Saving world...; save-all'",
+      "timeout": 30
+    },
+    {
+      "name": "Stop Server",
+      "cmd": "systemctl exec minecraft-server 'say Server shutting down in 10 seconds...; stop'",
+      "timeout": 15
+    },
+    {
+      "name": "List Players",
+      "cmd": "systemctl exec minecraft-server 'list'",
+      "timeout": 5
+    },
+    {
+      "name": "Server Status",
+      "cmd": "systemctl status minecraft-server",
+      "timeout": 10
+    }
+  ],
+  "resources": {
+    "cpu": 2,
+    "memoryMB": 4096,
+    "diskMB": 20480
+  }
+}
