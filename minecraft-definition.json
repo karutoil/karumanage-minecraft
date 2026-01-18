@@ -46,11 +46,21 @@
   },
   "logs": {
     "main": "/opt/minecraft/logs/latest.log",
+    "journal": "minecraft",
     "rotate": {
       "strategy": "size",
       "maxBytes": 52428800,
       "keep": 5
     }
+  },
+  "console": {
+    "type": "socket",
+    "socket": {
+      "path": "/run/minecraft-server.sock",
+      "protocol": "minecraft-console",
+      "method": "write"
+    },
+    "fallback": "rcon"
   },
   "files": {
     "editable": [
@@ -88,22 +98,26 @@
   "actions": [
     {
       "name": "Save World",
-      "cmd": "systemctl exec minecraft-server 'say Saving world...; save-all'",
+      "cmd": "save-all",
+      "method": "socket",
       "timeout": 30
     },
     {
       "name": "Stop Server",
-      "cmd": "systemctl exec minecraft-server 'say Server shutting down in 10 seconds...; stop'",
+      "cmd": "say Server shutting down in 10 seconds...; stop",
+      "method": "socket",
       "timeout": 15
     },
     {
       "name": "List Players",
-      "cmd": "systemctl exec minecraft-server 'list'",
+      "cmd": "list",
+      "method": "socket",
       "timeout": 5
     },
     {
       "name": "Server Status",
       "cmd": "systemctl status minecraft-server",
+      "method": "exec",
       "timeout": 10
     }
   ],

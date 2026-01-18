@@ -101,11 +101,12 @@ echo "    ✓ Using: $JAVA_VERSION"
 # Step 6: Create systemd unit file
 echo "[6] Creating systemd service unit"
 SYSTEMD_UNIT="/etc/systemd/system/minecraft-server.service"
+SOCKET_UNIT="/etc/systemd/system/minecraft-server.socket"
 cat > "$SYSTEMD_UNIT" << 'EOF'
 [Unit]
 Description=Minecraft Paper Server
 Documentation=https://papermc.io
-After=network-online.target
+After=network-online.target minecraft-server.socket
 Wants=network-online.target
 
 [Service]
@@ -118,7 +119,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=yes
-ReadWritePaths={{INSTALL_DIR}} {{INSTALL_DIR}}/worlds {{INSTALL_DIR}}/logs
+ReadWritePaths={{INSTALL_DIR}} {{INSTALL_DIR}}/worlds {{INSTALL_DIR}}/logs /run/minecraft-server.sock
 
 # Resource limits
 MemoryLimit=4G
@@ -148,11 +149,30 @@ RestartSec=10
 WantedBy=multi-user.target
 EOF
 
+# Create systemd socket unit for command execution
+cat > "$SOCKET_UNIT" << 'EOF'
+[Unit]
+Description=Minecraft Server Console Socket
+Documentation=https://papermc.io
+Before=minecraft-server.service
+
+[Socket]
+ListenStream=/run/minecraft-server.sock
+SocketMode=0660
+SocketUser=minecraft-srv
+SocketGroup=minecraft-srv
+Accept=false
+
+[Install]
+WantedBy=sockets.target
+EOF
+
 # Replace template variables
 sed -i "s|{{INSTALL_DIR}}|$INSTALL_DIR|g" "$SYSTEMD_UNIT"
 sed -i "s|{{HEAP_MB}}|2048|g" "$SYSTEMD_UNIT"  # Default 2GB, adjust as needed
 
 echo "    ✓ Created $SYSTEMD_UNIT"
+echo "    ✓ Created $SOCKET_UNIT"
 
 # Step 7: Create eula.txt
 echo "[7] Accepting Minecraft EULA"
@@ -192,7 +212,9 @@ echo "    ✓ Set JAR permissions"
 echo "[10] Finalizing systemd configuration"
 systemctl daemon-reload
 systemctl enable minecraft-server.service 2>/dev/null || true
+systemctl enable minecraft-server.socket 2>/dev/null || true
 echo "    ✓ Systemd configured"
+echo "    ✓ Socket enabled for console command execution"
 
 echo ""
 echo "✅ Installation Complete!"
@@ -201,12 +223,18 @@ echo "📋 Next Steps:"
 echo "   1. Edit $INSTALL_DIR/server.properties with your settings"
 echo "   2. Start: sudo systemctl start minecraft-server"
 echo "   3. Check logs: sudo journalctl -u minecraft-server -f"
-echo "   4. View console: sudo systemctl status minecraft-server"
+echo "   4. Send commands: echo 'command' | nc -U /run/minecraft-server.sock"
 echo ""
 echo "🔒 Security Notes:"
 echo "   • Server runs as non-root user: $MINECRAFT_USER"
 echo "   • Systemd uses ProtectSystem=strict, ProtectHome=yes"
 echo "   • Memory limited to 4GB (adjust HEAP_MB in unit file)"
 echo "   • File permissions: 750 (owner+group only)"
+echo "   • Socket mode: 0660 (minecraft user + group only)"
 echo "   • Consider firewall rules: sudo ufw allow 25565/tcp"
+echo ""
+echo "📡 Console Socket:"
+echo "   • Location: /run/minecraft-server.sock"
+echo "   • Send commands: echo 'help' | sudo nc -U /run/minecraft-server.sock"
+echo "   • Or use frontend console for integrated command execution"
 echo ""

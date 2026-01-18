@@ -6,6 +6,7 @@ set -euo pipefail
 
 SERVICE_NAME="minecraft-server"
 UNIT_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
+SOCKET_FILE="/etc/systemd/system/${SERVICE_NAME}.socket"
 DATA_DIR="${INSTALL_DIR:-/opt/minecraft}"
 USER_NAME="minecraft-srv"
 GROUP_NAME="minecraft-srv"
@@ -46,6 +47,15 @@ else
   log "[1] Service ${SERVICE_NAME} not found"
 fi
 
+# 1.5) Stop and disable socket if running
+if systemctl list-units --full -all | grep -q "${SERVICE_NAME}.socket"; then
+  log "[1.5] Stopping socket ${SERVICE_NAME}.socket"
+  systemctl stop "${SERVICE_NAME}.socket" 2>/dev/null || true
+  systemctl disable "${SERVICE_NAME}.socket" 2>/dev/null || true
+else
+  log "[1.5] Socket ${SERVICE_NAME}.socket not found"
+fi
+
 # 1b) Kill any remaining Java processes running as minecraft-srv
 if id "${USER_NAME}" &>/dev/null 2>&1; then
   log "[1b] Killing remaining Java processes for user ${USER_NAME}"
@@ -60,6 +70,15 @@ if [ -f "${UNIT_FILE}" ]; then
   systemctl daemon-reload
 else
   log "[2] Systemd unit not present"
+fi
+
+# 2.5) Remove systemd socket unit
+if [ -f "${SOCKET_FILE}" ]; then
+  log "[2.5] Removing systemd socket unit ${SOCKET_FILE}"
+  rm -f "${SOCKET_FILE}"
+  systemctl daemon-reload
+else
+  log "[2.5] Systemd socket unit not present"
 fi
 
 if [ "${KEEP_FILES}" = "true" ]; then
