@@ -30,6 +30,24 @@ INSTALL_DIR="${INSTALL_DIR:-/opt/minecraft-${INSTANCE_ID}}"
 MINECRAFT_USER="minecraft-srv"
 MINECRAFT_GROUP="minecraft-srv"
 SERVICE_NAME="minecraft-server-${INSTANCE_ID}"
+DRY_RUN="${DRY_RUN:-0}"
+
+# Dry-run helper functions
+run_cmd() {
+  if [ "$DRY_RUN" = "1" ]; then
+    echo "[DRY RUN] $*"
+  else
+    "$@"
+  fi
+}
+
+run_cmd_silent() {
+  if [ "$DRY_RUN" = "1" ]; then
+    echo "[DRY RUN] $*"
+  else
+    "$@" 2>/dev/null || return 1
+  fi
+}
 
 # Function to get the latest Paper build
 get_paper_url() {
@@ -213,14 +231,17 @@ ensure_java() {
 echo "[*] Multi-Variant Minecraft Server Installer"
 echo "    Installer Type: ${INSTALLER_TYPE}"
 echo "    Minecraft Version: ${MINECRAFT_VERSION}"
+if [ "$DRY_RUN" = "1" ]; then
+  echo "    [DRY RUN MODE - No changes will be made]"
+fi
 echo ""
 
 # Step 1: Create dedicated user and group
 echo "[1] Setting up dedicated user: $MINECRAFT_USER"
 mkdir -p "$INSTALL_DIR"
 if ! id "$MINECRAFT_USER" &>/dev/null; then
-  groupadd -r "$MINECRAFT_GROUP" || true
-  useradd -r -g "$MINECRAFT_GROUP" -d "$INSTALL_DIR" -s /bin/false \
+  run_cmd groupadd -r "$MINECRAFT_GROUP" || true
+  run_cmd useradd -r -g "$MINECRAFT_GROUP" -d "$INSTALL_DIR" -s /bin/false \
     -c "Minecraft Server" "$MINECRAFT_USER" || true
   echo "    ✓ Created user $MINECRAFT_USER"
 else
@@ -229,17 +250,20 @@ fi
 
 # Step 2: Create directory structure with secure permissions
 echo "[2] Setting up directories with secure permissions"
-mkdir -p "$INSTALL_DIR"
-mkdir -p "$INSTALL_DIR/worlds"
-mkdir -p "$INSTALL_DIR/logs"
-mkdir -p "$INSTALL_DIR/plugins"
-mkdir -p "$INSTALL_DIR/mods"
-mkdir -p "$INSTALL_DIR/config"
-touch "$INSTALL_DIR/logs/latest.log"
-
-chmod 750 "$INSTALL_DIR"
-chmod 755 "$INSTALL_DIR/logs"
-chown -R "$MINECRAFT_USER:$MINECRAFT_GROUP" "$INSTALL_DIR"
+if [ "$DRY_RUN" = "1" ]; then
+  echo "[DRY RUN] mkdir -p \"$INSTALL_DIR\" && mkdir -p \"$INSTALL_DIR\"/worlds logs plugins mods config"
+else
+  mkdir -p "$INSTALL_DIR"
+  mkdir -p "$INSTALL_DIR/worlds"
+  mkdir -p "$INSTALL_DIR/logs"
+  mkdir -p "$INSTALL_DIR/plugins"
+  mkdir -p "$INSTALL_DIR/mods"
+  mkdir -p "$INSTALL_DIR/config"
+  touch "$INSTALL_DIR/logs/latest.log"
+  chmod 750 "$INSTALL_DIR"
+  chmod 755 "$INSTALL_DIR/logs"
+  chown -R "$MINECRAFT_USER:$MINECRAFT_GROUP" "$INSTALL_DIR"
+fi
 
 echo "    ✓ Directories created"
 
