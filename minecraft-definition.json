@@ -56,7 +56,7 @@
   "console": {
     "type": "socket",
     "socket": {
-      "path": "/run/minecraft-server.sock",
+      "path": "/run/minecraft-server.socket",
       "protocol": "minecraft-console",
       "method": "write"
     },
