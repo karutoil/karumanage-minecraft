@@ -169,7 +169,7 @@ cat > "$SOCKET_UNIT" << 'EOF'
 [Unit]
 Description=Minecraft Server Console Socket
 Documentation=https://papermc.io
-BindsTo=minecraft-server.service
+BindsTo={{SERVICE_NAME}}.service
 
 [Socket]
 ListenFIFO={{RUNTIME_SOCKET}}
@@ -188,6 +188,7 @@ sed -i "s|{{INSTALL_DIR}}|$INSTALL_DIR|g" "$SYSTEMD_UNIT"
 sed -i "s|{{HEAP_MB}}|2048|g" "$SYSTEMD_UNIT"  # Default 2GB, adjust as needed
 sed -i "s|{{SERVICE_NAME}}|$SERVICE_NAME|g" "$SYSTEMD_UNIT"
 sed -i "s|{{RUNTIME_SOCKET}}|$RUNTIME_SOCKET|g" "$SOCKET_UNIT"
+sed -i "s|{{SERVICE_NAME}}|$SERVICE_NAME|g" "$SOCKET_UNIT"
 sed -i "s|{{SERVICE_NAME}}|$SERVICE_NAME|g" "$SOCKET_UNIT"
 
 echo "    ✓ Created $SYSTEMD_UNIT"
