@@ -384,16 +384,16 @@ RUNTIME_SOCKET="/run/${SERVICE_NAME}.socket"
 # Determine startup command based on installer type
 case "$INSTALLER_TYPE" in
   paper|fabric)
-    START_CMD="/usr/bin/java -Xmx{{HEAP_MB}}M -Xms{{HEAP_MB}}M -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -jar $(basename "$JAR_FILE") nogui"
+    START_CMD="/usr/bin/java -Xmx${HEAP_MB:-2048}M -Xms${HEAP_MB:-2048}M -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -jar $(basename "$JAR_FILE") nogui"
     ;;
   forge)
-    START_CMD="/usr/bin/java -Xmx{{HEAP_MB}}M -Xms{{HEAP_MB}}M -XX:+UseG1GC @libraries/net/minecraftforge/forge/*/unix_args.txt nogui"
+    START_CMD="/usr/bin/java -Xmx${HEAP_MB:-2048}M -Xms${HEAP_MB:-2048}M -XX:+UseG1GC @libraries/net/minecraftforge/forge/*/unix_args.txt nogui"
     ;;
   geyser)
-    START_CMD="/usr/bin/java -Xmx{{HEAP_MB}}M -Xms{{HEAP_MB}}M -jar geyser-standalone.jar"
+    START_CMD="/usr/bin/java -Xmx${HEAP_MB:-2048}M -Xms${HEAP_MB:-2048}M -jar geyser-standalone.jar"
     ;;
   velocity)
-    START_CMD="/usr/bin/java -Xmx{{HEAP_MB}}M -Xms{{HEAP_MB}}M -jar velocity.jar"
+    START_CMD="/usr/bin/java -Xmx${HEAP_MB:-2048}M -Xms${HEAP_MB:-2048}M -jar velocity.jar"
     ;;
 esac
 
@@ -421,7 +421,7 @@ NoNewPrivileges=true
 ProtectHome=yes
 
 # Resource limits
-MemoryLimit=4G
+MemoryMax=4G
 CPUQuota=200%
 TasksMax=512
 LimitNOFILE=65536
@@ -462,7 +462,6 @@ EOF
 
 # Replace template variables
 sed -i "s|{{INSTALL_DIR}}|$INSTALL_DIR|g" "$SYSTEMD_UNIT"
-sed -i "s|{{HEAP_MB}}|${HEAP_MB:-2048}|g" "$SYSTEMD_UNIT"
 sed -i "s|{{SERVICE_NAME}}|$SERVICE_NAME|g" "$SYSTEMD_UNIT"
 sed -i "s|{{INSTALLER_TYPE}}|$INSTALLER_TYPE|g" "$SYSTEMD_UNIT"
 sed -i "s|{{START_CMD}}|$START_CMD|g" "$SYSTEMD_UNIT"
