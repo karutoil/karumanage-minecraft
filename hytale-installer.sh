@@ -58,7 +58,46 @@ EOF
     echo "    ✗ Cannot install Java automatically"
     exit 1
   fi
-  echo "    ✓ Java 25 installed: $(java -version 2>&1 | head -1)"
+  echo "    ✓ Java 25 installed"
+}
+
+resolve_java_25() {
+  local java_bin=""
+  local candidate=""
+
+  if command -v update-alternatives &>/dev/null; then
+    while read -r candidate; do
+      if [ -x "$candidate" ]; then
+        local ver
+        ver=$($candidate -version 2>&1 | head -1 | sed -E 's/.*version "([0-9]+).*/\1/')
+        if [ "${ver:-0}" -eq 25 ]; then
+          java_bin="$candidate"
+          break
+        fi
+      fi
+    done < <(update-alternatives --list java 2>/dev/null || true)
+  fi
+
+  if [ -z "$java_bin" ] && [ -d "/usr/lib/jvm" ]; then
+    while read -r candidate; do
+      if [ -x "$candidate" ]; then
+        local ver
+        ver=$($candidate -version 2>&1 | head -1 | sed -E 's/.*version "([0-9]+).*/\1/')
+        if [ "${ver:-0}" -eq 25 ]; then
+          java_bin="$candidate"
+          break
+        fi
+      fi
+    done < <(find /usr/lib/jvm -maxdepth 3 -type f -path "*/bin/java" 2>/dev/null | sort)
+  fi
+
+  if [ -z "$java_bin" ]; then
+    echo "    ✗ Java 25 binary not found"
+    echo "      Install Temurin 25 and ensure it is available"
+    exit 1
+  fi
+
+  echo "$java_bin"
 }
 
 echo "[*] Hytale Server Installer"
@@ -94,7 +133,8 @@ echo "    ✓ Directories created"
 # Step 3: Check/install Java 25
 echo "[3] Checking Java runtime"
 ensure_java
-JAVA_VERSION=$(java -version 2>&1 | head -1)
+JAVA_BIN=$(resolve_java_25)
+JAVA_VERSION=$($JAVA_BIN -version 2>&1 | head -1)
 echo "    ✓ Using: $JAVA_VERSION"
 
 # Step 4: Download Hytale downloader
@@ -173,7 +213,7 @@ LimitNOFILE=65536
 
 # Working directory and startup
 WorkingDirectory={{INSTALL_DIR}}/AppFiles
-ExecStart=/usr/bin/java -server -Xms{{HEAP_MB}}M -Xmx{{HEAP_MB}}M -XX:MaxMetaspaceSize=512M -XX:+UnlockExperimentalVMOptions -XX:+UseShenandoahGC -XX:ShenandoahGCHeuristics=compact -XX:ShenandoahUncommitDelay=30000 -XX:ShenandoahAllocationThreshold=15 -XX:ShenandoahGuaranteedGCInterval=30000 -XX:+PerfDisableSharedMem -XX:+DisableExplicitGC -XX:+ParallelRefProcEnabled -XX:ParallelGCThreads=4 -XX:ConcGCThreads=2 -XX:+AlwaysPreTouch -jar {{INSTALL_DIR}}/AppFiles/Server/HytaleServer.jar --assets {{INSTALL_DIR}}/AppFiles/Assets.zip --accept-early-plugins
+ExecStart={{JAVA_BIN}} -server -Xms{{HEAP_MB}}M -Xmx{{HEAP_MB}}M -XX:MaxMetaspaceSize=512M -XX:+UnlockExperimentalVMOptions -XX:+UseShenandoahGC -XX:ShenandoahGCHeuristics=compact -XX:ShenandoahUncommitDelay=30000 -XX:ShenandoahAllocationThreshold=15 -XX:ShenandoahGuaranteedGCInterval=30000 -XX:+PerfDisableSharedMem -XX:+DisableExplicitGC -XX:+ParallelRefProcEnabled -XX:ParallelGCThreads=4 -XX:ConcGCThreads=2 -XX:+AlwaysPreTouch -jar {{INSTALL_DIR}}/AppFiles/Server/HytaleServer.jar --assets {{INSTALL_DIR}}/AppFiles/Assets.zip --accept-early-plugins
 
 # Graceful shutdown
 KillMode=process
@@ -211,6 +251,7 @@ EOF
 sed -i "s|{{INSTALL_DIR}}|$INSTALL_DIR|g" "$SYSTEMD_UNIT"
 sed -i "s|{{HEAP_MB}}|${HEAP_MB:-4096}|g" "$SYSTEMD_UNIT"
 sed -i "s|{{SERVICE_NAME}}|$SERVICE_NAME|g" "$SYSTEMD_UNIT"
+sed -i "s|{{JAVA_BIN}}|$JAVA_BIN|g" "$SYSTEMD_UNIT"
 sed -i "s|{{RUNTIME_SOCKET}}|$RUNTIME_SOCKET|g" "$SOCKET_UNIT"
 sed -i "s|{{SERVICE_NAME}}|$SERVICE_NAME|g" "$SOCKET_UNIT"
 sed -i "s|{{SERVICE_NAME}}|$SERVICE_NAME|g" "$SOCKET_UNIT"
