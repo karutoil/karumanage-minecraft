@@ -36,12 +36,12 @@ get_paper_url() {
   local version="$1"
   local build="${2:-latest}"
   
-  echo "    → Fetching Paper build information for ${version}..."
+  echo "    → Fetching Paper build information for ${version}..." >&2
   
   # Fetch version info
   local version_info
   version_info=$(curl -fsSL "https://api.papermc.io/v2/projects/paper/versions/${version}" 2>/dev/null) || {
-    echo "    ✗ Failed to fetch Paper version info for ${version}"
+    echo "    ✗ Failed to fetch Paper version info for ${version}" >&2
     exit 1
   }
   
@@ -51,14 +51,14 @@ get_paper_url() {
   fi
   
   if [ -z "$build" ] || ! [[ "$build" =~ ^[0-9]+$ ]]; then
-    echo "    ✗ Failed to get valid build number for Paper ${version} (got: '$build')"
+    echo "    ✗ Failed to get valid build number for Paper ${version} (got: '$build')" >&2
     exit 1
   fi
   
   # Fetch build info
   local build_info
   build_info=$(curl -fsSL "https://api.papermc.io/v2/projects/paper/versions/${version}/builds/${build}" 2>/dev/null) || {
-    echo "    ✗ Failed to fetch Paper build info for ${version} build ${build}"
+    echo "    ✗ Failed to fetch Paper build info for ${version} build ${build}" >&2
     exit 1
   }
   
@@ -79,27 +79,28 @@ get_paper_url() {
   
   # Basic URL validation: no spaces or invalid characters
   if [[ "$download_url" =~ [^a-zA-Z0-9./_:-] ]]; then
-    echo "    ✗ Invalid characters in download URL"
+    echo "    ✗ Invalid characters in download URL" >&2
     exit 1
   fi
   
+  # Only output the URL itself (to stdout)
   echo "$download_url"
 }
 
 # Function to get the latest Fabric installer
 get_fabric_url() {
   local version="$1"
-  echo "    → Fetching Fabric installer for ${version}..."
+  echo "    → Fetching Fabric installer for ${version}..." >&2
   
   # Validate that Fabric supports this version
   local fabric_versions
   fabric_versions=$(curl -fsSL "https://meta.fabricmc.net/v2/versions" 2>/dev/null | grep -oP '"version":"\K[^"]+' | head -20) || {
-    echo "    ✗ Failed to fetch Fabric versions"
+    echo "    ✗ Failed to fetch Fabric versions" >&2
     exit 1
   }
   
   if ! echo "$fabric_versions" | grep -q "^${version}$"; then
-    echo "    ✗ Fabric does not support Minecraft version ${version}"
+    echo "    ✗ Fabric does not support Minecraft version ${version}" >&2
     exit 1
   fi
   
@@ -109,12 +110,12 @@ get_fabric_url() {
 # Function to get the latest Forge installer
 get_forge_url() {
   local version="$1"
-  echo "    → Fetching Forge installer for ${version}..."
+  echo "    → Fetching Forge installer for ${version}..." >&2
   
   # Get promotions data
   local promotions
   promotions=$(curl -fsSL "https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json" 2>/dev/null) || {
-    echo "    ✗ Failed to fetch Forge promotions"
+    echo "    ✗ Failed to fetch Forge promotions" >&2
     exit 1
   }
   
@@ -129,7 +130,7 @@ get_forge_url() {
   fi
   
   if [ -z "$forge_version" ]; then
-    echo "    ✗ No Forge version found for Minecraft ${version}"
+    echo "    ✗ No Forge version found for Minecraft ${version}" >&2
     exit 1
   fi
   
@@ -138,20 +139,20 @@ get_forge_url() {
 
 # Function to get Geyser standalone
 get_geyser_url() {
-  echo "    → Fetching Geyser standalone..."
+  echo "    → Fetching Geyser standalone..." >&2
   local build="${1:-latest}"
   
   if [ "$build" = "latest" ]; then
     local build_info
     build_info=$(curl -fsSL "https://download.geysermc.org/v2/projects/geyser/versions/latest/builds/latest" 2>/dev/null) || {
-      echo "    ✗ Failed to fetch Geyser build info"
+      echo "    ✗ Failed to fetch Geyser build info" >&2
       exit 1
     }
     build=$(echo "$build_info" | grep -oP '"build":\K[0-9]+' | tr -d '\n\r\t ')
   fi
   
   if [ -z "$build" ] || ! [[ "$build" =~ ^[0-9]+$ ]]; then
-    echo "    ✗ Failed to get valid Geyser build number"
+    echo "    ✗ Failed to get valid Geyser build number" >&2
     exit 1
   fi
   
@@ -161,11 +162,11 @@ get_geyser_url() {
 # Function to get Velocity proxy
 get_velocity_url() {
   local version="${1:-3.0}"
-  echo "    → Fetching Velocity proxy for version ${version}..."
+  echo "    → Fetching Velocity proxy for version ${version}..." >&2
   
   local build_info
   build_info=$(curl -fsSL "https://api.papermc.io/v2/projects/velocity/versions/${version}/builds/latest" 2>/dev/null) || {
-    echo "    ✗ Failed to fetch Velocity build info"
+    echo "    ✗ Failed to fetch Velocity build info" >&2
     exit 1
   }
   
