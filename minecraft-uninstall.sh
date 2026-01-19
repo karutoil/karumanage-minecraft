@@ -63,23 +63,23 @@ if id "${USER_NAME}" &>/dev/null 2>&1; then
   sleep 1
 fi
 
-# 2) Remove systemd unit
+# 2) Remove systemd units
 if [ -f "${UNIT_FILE}" ]; then
   log "[2] Removing systemd unit ${UNIT_FILE}"
   rm -f "${UNIT_FILE}"
-  systemctl daemon-reload
 else
   log "[2] Systemd unit not present"
 fi
 
-# 2.5) Remove systemd socket unit
 if [ -f "${SOCKET_FILE}" ]; then
   log "[2.5] Removing systemd socket unit ${SOCKET_FILE}"
   rm -f "${SOCKET_FILE}"
-  systemctl daemon-reload
 else
   log "[2.5] Systemd socket unit not present"
 fi
+
+# Reload systemd after removing units
+systemctl daemon-reload 2>/dev/null || true
 
 if [ "${KEEP_FILES}" = "true" ]; then
   log "[3] Keeping files and user/group as requested"
