@@ -4,10 +4,12 @@ set -euo pipefail
 # Minecraft Server Uninstaller
 # Supports keeping data (worlds/logs) or full removal
 
-SERVICE_NAME="minecraft-server"
+INSTANCE_ID="${INSTANCE_ID:-default}" # UUID for unique service names
+SERVICE_NAME="minecraft-server-${INSTANCE_ID}"
 UNIT_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 SOCKET_FILE="/etc/systemd/system/${SERVICE_NAME}.socket"
-DATA_DIR="${INSTALL_DIR:-/opt/minecraft}"
+RUNTIME_SOCKET="/run/${SERVICE_NAME}.socket"
+DATA_DIR="${INSTALL_DIR:-/opt/minecraft-${INSTANCE_ID}}"
 USER_NAME="minecraft-srv"
 GROUP_NAME="minecraft-srv"
 KEEP_FILES="${KEEP_FILES:-false}"
@@ -80,6 +82,14 @@ fi
 
 # Reload systemd after removing units
 systemctl daemon-reload 2>/dev/null || true
+
+# 2.7) Remove runtime socket if it exists
+if [ -S "${RUNTIME_SOCKET}" ]; then
+  log "[2.7] Removing runtime socket ${RUNTIME_SOCKET}"
+  rm -f "${RUNTIME_SOCKET}"
+else
+  log "[2.7] Runtime socket already removed"
+fi
 
 if [ "${KEEP_FILES}" = "true" ]; then
   log "[3] Keeping files and user/group as requested"
