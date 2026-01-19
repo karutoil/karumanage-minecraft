@@ -47,7 +47,7 @@ get_paper_url() {
   
   if [ "$build" = "latest" ]; then
     # Get latest build number from JSON response
-    build=$(echo "$version_info" | grep -oP '"builds":\[\K[0-9]+' | tail -1)
+    build=$(echo "$version_info" | grep -oP '"builds":\[\K[0-9]+' | tail -1 | tr -d '\n\r\t ')
   fi
   
   if [ -z "$build" ] || ! [[ "$build" =~ ^[0-9]+$ ]]; then
@@ -64,7 +64,7 @@ get_paper_url() {
   
   # Extract download name - use multiple extraction methods for robustness
   local download_name
-  download_name=$(echo "$build_info" | grep -oP '"name":"\K[^"]+' | head -1)
+  download_name=$(echo "$build_info" | grep -oP '"name":"\K[^"]+' | head -1 | tr -d '\n\r\t ' | xargs)
   
   if [ -z "$download_name" ]; then
     # Fallback: construct filename from known pattern
@@ -73,6 +73,9 @@ get_paper_url() {
   
   # Construct and validate URL
   local download_url="https://api.papermc.io/v2/projects/paper/versions/${version}/builds/${build}/downloads/${download_name}"
+  
+  # Ensure URL has no embedded whitespace
+  download_url=$(echo "$download_url" | tr -d '\n\r\t ')
   
   # Basic URL validation: no spaces or invalid characters
   if [[ "$download_url" =~ [^a-zA-Z0-9./_:-] ]]; then
@@ -118,9 +121,11 @@ get_forge_url() {
   # Try latest, then recommended
   local forge_version
   forge_version=$(echo "$promotions" | grep -oP "\"${version}-latest\":\s*\"\K[^\"]+")
+  forge_version=$(echo "$forge_version" | tr -d '\n\r\t ')
   
   if [ -z "$forge_version" ]; then
     forge_version=$(echo "$promotions" | grep -oP "\"${version}-recommended\":\s*\"\K[^\"]+")
+    forge_version=$(echo "$forge_version" | tr -d '\n\r\t ')
   fi
   
   if [ -z "$forge_version" ]; then
@@ -142,7 +147,7 @@ get_geyser_url() {
       echo "    ✗ Failed to fetch Geyser build info"
       exit 1
     }
-    build=$(echo "$build_info" | grep -oP '"build":\K[0-9]+')
+    build=$(echo "$build_info" | grep -oP '"build":\K[0-9]+' | tr -d '\n\r\t ')
   fi
   
   if [ -z "$build" ] || ! [[ "$build" =~ ^[0-9]+$ ]]; then
@@ -165,7 +170,7 @@ get_velocity_url() {
   }
   
   local download_name
-  download_name=$(echo "$build_info" | grep -oP '"name":"\K[^"]+' | head -1)
+  download_name=$(echo "$build_info" | grep -oP '"name":"\K[^"]+' | head -1 | tr -d '\n\r\t ')
   
   if [ -z "$download_name" ]; then
     download_name="velocity-${version}-SNAPSHOT.jar"
@@ -275,6 +280,9 @@ case "$INSTALLER_TYPE" in
 esac
 
 echo "    → Downloading from: $INSTALLER_URL"
+
+# Trim any whitespace from URL
+INSTALLER_URL=$(echo "$INSTALLER_URL" | xargs)
 
 # Validate URL before attempting download
 if [ -z "$INSTALLER_URL" ] || ! [[ "$INSTALLER_URL" =~ ^https?:// ]]; then
