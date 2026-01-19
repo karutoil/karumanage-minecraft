@@ -493,7 +493,7 @@ save_auth_tokens() {
   "profile_uuid": "$PROFILE_UUID",
   "timestamp": $(date +%s)
 }
-  AUTH_CACHE
+AUTH_CACHE
     logger info "Refresh token cached for future use"
 }
 
