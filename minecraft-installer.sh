@@ -3,6 +3,19 @@ set -euo pipefail
 
 # Minecraft Server Installer
 # Security-focused installation for Paper Minecraft servers
+# 
+# Required environment variables:
+#   INSTANCE_ID - UUID of the instance (e.g., 16652474-c4a3-4b9a-8fb4-b1c7a5bb1681)
+#
+# Usage: INSTANCE_ID=<uuid> ./minecraft-installer.sh [JAR_URL] [CHECKSUM]
+#
+# Optional environment variables:
+#   INSTALL_DIR - Installation directory (default: /opt/minecraft-${INSTANCE_ID})
+#   PORT - Server port (default: 25565)
+#   WORLD_NAME - World name (default: world)
+#   MAX_PLAYERS - Max players (default: 20)
+#   SERVER_MOTD - Server message (default: "A Minecraft Server")
+#   HEAP_MB - Java heap memory in MB (default: 2048)
 
 PAPER_JAR_URL="${1:-https://fill-data.papermc.io/v1/objects/b727f13945dd442cd2bc1de6c64680e8630e7f54ba259aac7687e9c7c3cc18a3/paper-1.21.11-97.jar}"
 PAPER_JAR_CHECKSUM="${2:-}" # Optional checksum verification
@@ -118,11 +131,11 @@ User=minecraft-srv
 Group=minecraft-srv
 
 # Socket input/output
-Sockets=minecraft-server.socket
+Sockets={{SERVICE_NAME}}.socket
 StandardInput=socket
 StandardOutput=journal
-StandardError=jou{{SERVICE_NAME}}
-SyslogIdentifier=minecraft
+StandardError=journal
+SyslogIdentifier={{SERVICE_NAME}}
 
 # Security hardening
 NoNewPrivileges=true
@@ -223,16 +236,19 @@ echo "    ✓ Set JAR permissions"
 # Step 10: Reload systemd and show status
 echo "[10] Finalizing systemd configuration"
 systemctl daemon-reload
-systemctl enable minecraft-server.service 2>/dev/null || true
-systemctl enable minecraft-server.socket 2>/dev/null || true
+systemctl enable ${SERVICE_NAME}.service 2>/dev/null || true
+systemctl enable ${SERVICE_NAME}.socket 2>/dev/null || true
 # Start the socket (required before service can start)
-systemctl start minecraft-server.socket 2>/dev/null || true
+systemctl start ${SERVICE_NAME}.socket 2>/dev/null || true
 echo "    ✓ Systemd configured"
 echo "    ✓ Socket enabled for console command execution"
 
 echo ""
 echo "✅ Installation Complete!"
-echo ""${SERVICE_NAME}"
+echo ""
+echo "📋 Next Steps:"
+echo "   1. Edit $INSTALL_DIR/server.properties with your settings"
+echo "   2. Start: sudo systemctl start ${SERVICE_NAME}"
 echo "   3. Check logs: sudo journalctl -u ${SERVICE_NAME} -f"
 echo "   4. Send commands via socket (requires server to be running)"
 echo ""
@@ -247,9 +263,6 @@ echo "   • Consider firewall rules: sudo ufw allow 25565/tcp"
 echo ""
 echo "📡 Console Socket:"
 echo "   • Location: ${RUNTIME_SOCKET}"
-echo "   • Send commands: echo 'help' | sudo nc -U ${RUNTIME_SOCKET}
-echo "📡 Console Socket:"
-echo "   • Location: /run/minecraft-server.sock"
-echo "   • Send commands: echo 'help' | sudo nc -U /run/minecraft-server.sock"
+echo "   • Send commands: echo 'help' | sudo nc -U ${RUNTIME_SOCKET}"
 echo "   • Or use frontend console for integrated command execution"
 echo ""

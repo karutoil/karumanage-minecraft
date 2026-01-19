@@ -16,15 +16,22 @@ KEEP_FILES="${KEEP_FILES:-false}"
 
 usage() {
   cat <<'EOF'
-Usage: minecraft-uninstall.sh [--keep-files]
+Usage: INSTANCE_ID=<uuid> minecraft-uninstall.sh [--keep-files]
 
 Options:
-  --keep-files   Keep /opt/minecraft contents, user, and group
+  --keep-files   Keep /opt/minecraft-<uuid> contents, user, and group
   -h, --help     Show this help
 
-Env vars:
-  INSTALL_DIR   Override data dir (default: /opt/minecraft)
-  KEEP_FILES    Set to true to preserve files/user/group
+Required Env vars:
+  INSTANCE_ID    UUID of the instance to uninstall (e.g., 16652474-c4a3-4b9a-8fb4-b1c7a5bb1681)
+
+Optional Env vars:
+  INSTALL_DIR    Override data dir (default: /opt/minecraft-${INSTANCE_ID})
+  KEEP_FILES     Set to true to preserve files/user/group
+
+Examples:
+  INSTANCE_ID=abc123 ./minecraft-uninstall.sh
+  INSTANCE_ID=abc123 KEEP_FILES=true ./minecraft-uninstall.sh --keep-files
 EOF
 }
 
