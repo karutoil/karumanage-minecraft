@@ -163,8 +163,16 @@ echo "    ✓ Downloaded Hytale downloader"
 echo "[5] Downloading Hytale server files"
 echo "    ⚠ You may be prompted to authenticate in your web browser"
 cd "$INSTALL_DIR/AppFiles/"
-sudo -u "$HYTALE_USER" ./hytale-downloader-linux-amd64 -print-version
+sudo -u "$HYTALE_USER" ./hytale-downloader-linux-amd64 -download-path "$INSTALL_DIR/AppFiles/hytale-server.zip"
 cd -
+
+if [ -f "$INSTALL_DIR/AppFiles/hytale-server.zip" ]; then
+  unzip -o "$INSTALL_DIR/AppFiles/hytale-server.zip" -d "$INSTALL_DIR/AppFiles/" || {
+    echo "    ✗ Failed to extract Hytale server archive"
+    exit 1
+  }
+fi
+
 chown -R "$HYTALE_USER:$HYTALE_GROUP" "$INSTALL_DIR/AppFiles/"
 
 # Validate server files were downloaded
