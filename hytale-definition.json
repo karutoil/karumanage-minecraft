@@ -1,8 +1,8 @@
 {
   "meta": {
-    "name": "Hytale",
-    "version": "release",
-    "author": "Hytale"
+    "name": "Hytale Dedicated Server",
+    "version": "latest",
+    "author": "Hypixel Studios"
   },
   "compat": {
     "os": ["linux"],
@@ -11,7 +11,7 @@
   "install": {
     "script": "https://raw.githubusercontent.com/karutoil/karumanage-minecraft/refs/heads/main/hytale-installer.sh",
     "dir": "/opt/hytale-${INSTANCE_ID}",
-    "deps": ["curl", "unzip", "jq", "temurin-25-jre"],
+    "deps": ["curl", "unzip", "temurin-25-jre"],
     "env": {
       "HYTALE_USER": "hytale-srv",
       "HYTALE_GROUP": "hytale-srv"
@@ -25,32 +25,14 @@
     "start": "systemctl start hytale-server-${INSTANCE_ID}",
     "stop": "systemctl stop hytale-server-${INSTANCE_ID}",
     "restart": "systemctl restart hytale-server-${INSTANCE_ID}",
-    "cwd": "/opt/hytale-${INSTANCE_ID}",
+    "cwd": "/opt/hytale-${INSTANCE_ID}/AppFiles",
     "env": {
-      "SERVER_PORT": "5520",
-      "PATCHLINE": "release",
-      "AUTOMATIC_UPDATE": "1",
-      "SERVER_MEMORY": "8192",
-      "MEMORY_OVERHEAD": "0",
-      "JVM_ARGS": "",
-      "AUTH_MODE": "authenticated",
-      "LEVERAGE_AHEAD_OF_TIME_CACHE": "1",
-      "DISABLE_SENTRY": "1",
-      "ALLOW_OP": "1",
-      "ENABLE_BACKUPS": "0",
-      "BACKUP_FREQUENCY": "30",
-      "MAXIMUM_BACKUPS": "5",
-      "ACCEPT_EARLY_PLUGINS": "0",
-      "VALIDATE_ASSETS": "0",
-      "VALIDATE_PREFABS": "",
-      "VALIDATE_WORLD_GENERATION": "0",
-      "LOGGER_LEVEL": "",
-      "BOOT_COMMANDS": "",
-      "FORCE_NETWORK_FLUSH": "0",
-      "EVENT_DEBUG": "0",
-      "ENFORCE_PERMISSIONS": "0",
-      "GAME_PROFILE": "",
-      "USE_PERSISTENT_AUTHENTICATION": "ENABLED"
+      "JAVA_OPTS": "-server -Xms4096M -Xmx4096M -XX:MaxMetaspaceSize=512M -XX:+UnlockExperimentalVMOptions -XX:+UseShenandoahGC -XX:ShenandoahGCHeuristics=compact -XX:ShenandoahUncommitDelay=30000 -XX:ShenandoahAllocationThreshold=15 -XX:ShenandoahGuaranteedGCInterval=30000 -XX:+PerfDisableSharedMem -XX:+DisableExplicitGC -XX:+ParallelRefProcEnabled -XX:ParallelGCThreads=4 -XX:ConcGCThreads=2 -XX:+AlwaysPreTouch",
+      "HEAP_MB": "4096",
+      "PORT": "5520",
+      "SERVER_NAME": "Hytale Server",
+      "MAX_PLAYERS": "100",
+      "SERVER_MOTD": ""
     },
     "process": {
       "match": "HytaleServer.jar",
@@ -63,6 +45,11 @@
     },
     "memory": {
       "method": "pid"
+    },
+    "players": {
+      "method": "log_parse",
+      "file": "/opt/hytale-${INSTANCE_ID}/logs/latest.log",
+      "regex": "\\[(.*?)\\].*Player\\s+(\\w+)\\s+joined"
     }
   },
   "logs": {
@@ -83,21 +70,39 @@
     }
   },
   "files": {
-    "editable": []
+    "editable": [
+      {
+        "path": "/opt/hytale-${INSTANCE_ID}/AppFiles/Server/config.json",
+        "format": "json"
+      }
+    ]
   },
   "ports": [
     {
       "name": "game",
       "protocol": "udp",
       "port": 5520
-    },
-    {
-      "name": "query",
-      "protocol": "tcp",
-      "port": 5521
     }
   ],
   "actions": [
+    {
+      "name": "Save World",
+      "cmd": "save",
+      "method": "socket",
+      "timeout": 30
+    },
+    {
+      "name": "Stop Server",
+      "cmd": "shutdown",
+      "method": "socket",
+      "timeout": 15
+    },
+    {
+      "name": "List Players",
+      "cmd": "players",
+      "method": "socket",
+      "timeout": 5
+    },
     {
       "name": "Server Status",
       "cmd": "systemctl status hytale-server-${INSTANCE_ID}",
@@ -107,7 +112,7 @@
   ],
   "resources": {
     "cpu": 4,
-    "memoryMB": 8192,
-    "diskMB": 20480
+    "memoryMB": 16384,
+    "diskMB": 10240
   }
 }
