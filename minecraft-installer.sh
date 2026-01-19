@@ -6,9 +6,11 @@ set -euo pipefail
 
 PAPER_JAR_URL="${1:-https://fill-data.papermc.io/v1/objects/b727f13945dd442cd2bc1de6c64680e8630e7f54ba259aac7687e9c7c3cc18a3/paper-1.21.11-97.jar}"
 PAPER_JAR_CHECKSUM="${2:-}" # Optional checksum verification
-INSTALL_DIR="${INSTALL_DIR:-/opt/minecraft}"
+INSTANCE_ID="${INSTANCE_ID:-default}" # UUID for unique service names
+INSTALL_DIR="${INSTALL_DIR:-/opt/minecraft-${INSTANCE_ID}}"
 MINECRAFT_USER="minecraft-srv"
 MINECRAFT_GROUP="minecraft-srv"
+SERVICE_NAME="minecraft-server-${INSTANCE_ID}"
 
 ensure_java() {
   if command -v java &>/dev/null; then
@@ -100,8 +102,9 @@ echo "    ✓ Using: $JAVA_VERSION"
 
 # Step 6: Create systemd unit file
 echo "[6] Creating systemd service unit"
-SYSTEMD_UNIT="/etc/systemd/system/minecraft-server.service"
-SOCKET_UNIT="/etc/systemd/system/minecraft-server.socket"
+SYSTEMD_UNIT="/etc/systemd/system/${SERVICE_NAME}.service"
+SOCKET_UNIT="/etc/systemd/system/${SERVICE_NAME}.socket"
+RUNTIME_SOCKET="/run/${SERVICE_NAME}.socket"
 cat > "$SYSTEMD_UNIT" << 'EOF'
 [Unit]
 Description=Minecraft Paper Server
@@ -118,7 +121,7 @@ Group=minecraft-srv
 Sockets=minecraft-server.socket
 StandardInput=socket
 StandardOutput=journal
-StandardError=journal
+StandardError=jou{{SERVICE_NAME}}
 SyslogIdentifier=minecraft
 
 # Security hardening
@@ -156,8 +159,8 @@ Documentation=https://papermc.io
 BindsTo=minecraft-server.service
 
 [Socket]
-ListenFIFO=/run/minecraft-server.socket
-Service=minecraft-server.service
+ListenFIFO={{RUNTIME_SOCKET}}
+Service={{SERVICE_NAME}}.service
 RemoveOnStop=true
 SocketMode=0660
 SocketUser=minecraft-srv
@@ -170,6 +173,9 @@ EOF
 # Replace template variables
 sed -i "s|{{INSTALL_DIR}}|$INSTALL_DIR|g" "$SYSTEMD_UNIT"
 sed -i "s|{{HEAP_MB}}|2048|g" "$SYSTEMD_UNIT"  # Default 2GB, adjust as needed
+sed -i "s|{{SERVICE_NAME}}|$SERVICE_NAME|g" "$SYSTEMD_UNIT"
+sed -i "s|{{RUNTIME_SOCKET}}|$RUNTIME_SOCKET|g" "$SOCKET_UNIT"
+sed -i "s|{{SERVICE_NAME}}|$SERVICE_NAME|g" "$SOCKET_UNIT"
 
 echo "    ✓ Created $SYSTEMD_UNIT"
 echo "    ✓ Created $SOCKET_UNIT"
@@ -219,17 +225,16 @@ echo "[10] Finalizing systemd configuration"
 systemctl daemon-reload
 systemctl enable minecraft-server.service 2>/dev/null || true
 systemctl enable minecraft-server.socket 2>/dev/null || true
+# Start the socket (required before service can start)
+systemctl start minecraft-server.socket 2>/dev/null || true
 echo "    ✓ Systemd configured"
 echo "    ✓ Socket enabled for console command execution"
 
 echo ""
 echo "✅ Installation Complete!"
-echo ""
-echo "📋 Next Steps:"
-echo "   1. Edit $INSTALL_DIR/server.properties with your settings"
-echo "   2. Start: sudo systemctl start minecraft-server"
-echo "   3. Check logs: sudo journalctl -u minecraft-server -f"
-echo "   4. Send commands: echo 'command' | nc -U /run/minecraft-server.sock"
+echo ""${SERVICE_NAME}"
+echo "   3. Check logs: sudo journalctl -u ${SERVICE_NAME} -f"
+echo "   4. Send commands via socket (requires server to be running)"
 echo ""
 echo "🔒 Security Notes:"
 echo "   • Server runs as non-root user: $MINECRAFT_USER"
@@ -240,6 +245,9 @@ echo "   • File permissions: 750 (owner+group only)"
 echo "   • Socket mode: 0660 (minecraft user + group only)"
 echo "   • Consider firewall rules: sudo ufw allow 25565/tcp"
 echo ""
+echo "📡 Console Socket:"
+echo "   • Location: ${RUNTIME_SOCKET}"
+echo "   • Send commands: echo 'help' | sudo nc -U ${RUNTIME_SOCKET}
 echo "📡 Console Socket:"
 echo "   • Location: /run/minecraft-server.sock"
 echo "   • Send commands: echo 'help' | sudo nc -U /run/minecraft-server.sock"
