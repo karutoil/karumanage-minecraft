@@ -126,6 +126,15 @@ cd "$INSTALL_DIR/AppFiles/"
 sudo -u "$HYTALE_USER" ./hytale-downloader-linux-amd64 -print-version
 cd -
 chown -R "$HYTALE_USER:$HYTALE_GROUP" "$INSTALL_DIR/AppFiles/"
+
+# Validate server files were downloaded
+if [ ! -f "$INSTALL_DIR/AppFiles/Server/HytaleServer.jar" ]; then
+  echo "    ✗ Hytale server JAR not found"
+  echo "      Expected: $INSTALL_DIR/AppFiles/Server/HytaleServer.jar"
+  echo "      Ensure you completed authentication for the downloader"
+  exit 1
+fi
+
 echo "    ✓ Downloaded Hytale server files"
 
 # Step 6: Create systemd unit file
@@ -164,7 +173,6 @@ LimitNOFILE=65536
 
 # Working directory and startup
 WorkingDirectory={{INSTALL_DIR}}/AppFiles
-Environment=XDG_RUNTIME_DIR=/run/user/$(id -u hytale-srv)
 ExecStart=/usr/bin/java -server -Xms{{HEAP_MB}}M -Xmx{{HEAP_MB}}M -XX:MaxMetaspaceSize=512M -XX:+UnlockExperimentalVMOptions -XX:+UseShenandoahGC -XX:ShenandoahGCHeuristics=compact -XX:ShenandoahUncommitDelay=30000 -XX:ShenandoahAllocationThreshold=15 -XX:ShenandoahGuaranteedGCInterval=30000 -XX:+PerfDisableSharedMem -XX:+DisableExplicitGC -XX:+ParallelRefProcEnabled -XX:ParallelGCThreads=4 -XX:ConcGCThreads=2 -XX:+AlwaysPreTouch -jar {{INSTALL_DIR}}/AppFiles/Server/HytaleServer.jar --assets {{INSTALL_DIR}}/AppFiles/Assets.zip --accept-early-plugins
 
 # Graceful shutdown

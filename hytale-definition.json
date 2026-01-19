@@ -11,11 +11,7 @@
   "install": {
     "script": "https://raw.githubusercontent.com/karutoil/karumanage-minecraft/refs/heads/main/hytale-installer.sh",
     "dir": "/opt/hytale-${INSTANCE_ID}",
-    "deps": ["curl", "unzip", "temurin-25-jre"],
-    "env": {
-      "HYTALE_USER": "hytale-srv",
-      "HYTALE_GROUP": "hytale-srv"
-    }
+    "deps": ["curl", "unzip", "temurin-25-jre"]
   },
   "uninstall": {
     "script": "https://raw.githubusercontent.com/karutoil/karumanage-minecraft/refs/heads/main/hytale-uninstall.sh",
