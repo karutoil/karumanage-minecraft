@@ -292,8 +292,8 @@ if [ -z "$INSTALLER_URL" ] || ! [[ "$INSTALLER_URL" =~ ^https?:// ]]; then
 fi
 
 # Download with retry logic
-local retry_count=0
-local max_retries=3
+retry_count=0
+max_retries=3
 while [ $retry_count -lt $max_retries ]; do
   if curl -fL -o "$JAR_FILE" "$INSTALLER_URL" 2>/dev/null; then
     if [ -f "$JAR_FILE" ] && [ -s "$JAR_FILE" ]; then
