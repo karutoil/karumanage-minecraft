@@ -1,0 +1,113 @@
+{
+  "meta": {
+    "name": "Hytale",
+    "version": "release",
+    "author": "Hytale"
+  },
+  "compat": {
+    "os": ["linux"],
+    "arch": ["x86_64", "aarch64"]
+  },
+  "install": {
+    "script": "https://raw.githubusercontent.com/karutoil/karumanage-minecraft/refs/heads/main/hytale-installer.sh",
+    "dir": "/opt/hytale-${INSTANCE_ID}",
+    "deps": ["curl", "unzip", "jq", "temurin-25-jre"],
+    "env": {
+      "HYTALE_USER": "hytale-srv",
+      "HYTALE_GROUP": "hytale-srv"
+    }
+  },
+  "uninstall": {
+    "script": "https://raw.githubusercontent.com/karutoil/karumanage-minecraft/refs/heads/main/hytale-uninstall.sh",
+    "keepFilesSupported": true
+  },
+  "runtime": {
+    "start": "systemctl start hytale-server-${INSTANCE_ID}",
+    "stop": "systemctl stop hytale-server-${INSTANCE_ID}",
+    "restart": "systemctl restart hytale-server-${INSTANCE_ID}",
+    "cwd": "/opt/hytale-${INSTANCE_ID}",
+    "env": {
+      "SERVER_PORT": "5520",
+      "PATCHLINE": "release",
+      "AUTOMATIC_UPDATE": "1",
+      "SERVER_MEMORY": "8192",
+      "MEMORY_OVERHEAD": "0",
+      "JVM_ARGS": "",
+      "AUTH_MODE": "authenticated",
+      "LEVERAGE_AHEAD_OF_TIME_CACHE": "1",
+      "DISABLE_SENTRY": "1",
+      "ALLOW_OP": "1",
+      "ENABLE_BACKUPS": "0",
+      "BACKUP_FREQUENCY": "30",
+      "MAXIMUM_BACKUPS": "5",
+      "ACCEPT_EARLY_PLUGINS": "0",
+      "VALIDATE_ASSETS": "0",
+      "VALIDATE_PREFABS": "",
+      "VALIDATE_WORLD_GENERATION": "0",
+      "LOGGER_LEVEL": "",
+      "BOOT_COMMANDS": "",
+      "FORCE_NETWORK_FLUSH": "0",
+      "EVENT_DEBUG": "0",
+      "ENFORCE_PERMISSIONS": "0",
+      "GAME_PROFILE": "",
+      "USE_PERSISTENT_AUTHENTICATION": "ENABLED"
+    },
+    "process": {
+      "match": "HytaleServer.jar",
+      "pidFile": "/var/run/hytale-server-${INSTANCE_ID}.pid"
+    }
+  },
+  "metrics": {
+    "cpu": {
+      "method": "pid"
+    },
+    "memory": {
+      "method": "pid"
+    }
+  },
+  "logs": {
+    "main": "/opt/hytale-${INSTANCE_ID}/logs/latest.log",
+    "journal": "hytale-server-${INSTANCE_ID}",
+    "rotate": {
+      "strategy": "size",
+      "maxBytes": 52428800,
+      "keep": 5
+    }
+  },
+  "console": {
+    "type": "socket",
+    "socket": {
+      "path": "/run/hytale-server-${INSTANCE_ID}.socket",
+      "protocol": "hytale-console",
+      "method": "write"
+    }
+  },
+  "files": {
+    "editable": []
+  },
+  "ports": [
+    {
+      "name": "game",
+      "protocol": "udp",
+      "port": 5520
+    },
+    {
+      "name": "query",
+      "protocol": "tcp",
+      "port": 5521
+    }
+  ],
+  "actions": [
+    {
+      "name": "Server Status",
+      "cmd": "systemctl status hytale-server-${INSTANCE_ID}",
+      "method": "exec",
+      "timeout": 10
+    }
+  ],
+  "resources": {
+    "cpu": 4,
+    "memoryMB": 8192,
+    "diskMB": 20480
+  }
+}
