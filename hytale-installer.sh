@@ -487,13 +487,13 @@ save_auth_tokens() {
         touch $AUTH_CACHE_FILE
     fi
 
-    cat > "$AUTH_CACHE_FILE" << EOF
+    cat > "$AUTH_CACHE_FILE" << 'AUTH_CACHE'
 {
   "refresh_token": "$REFRESH_TOKEN",
   "profile_uuid": "$PROFILE_UUID",
   "timestamp": $(date +%s)
 }
-EOF
+  AUTH_CACHE
     logger info "Refresh token cached for future use"
 }
 
