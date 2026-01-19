@@ -38,28 +38,68 @@ get_paper_url() {
   
   echo "    → Fetching Paper build information for ${version}..."
   
+  # Fetch version info
+  local version_info
+  version_info=$(curl -fsSL "https://api.papermc.io/v2/projects/paper/versions/${version}" 2>/dev/null) || {
+    echo "    ✗ Failed to fetch Paper version info for ${version}"
+    exit 1
+  }
+  
   if [ "$build" = "latest" ]; then
-    # Get latest build number
-    build=$(curl -fsSL "https://api.papermc.io/v2/projects/paper/versions/${version}" | \
-      grep -oP '"builds":\[\K[0-9]+' | tail -1)
+    # Get latest build number from JSON response
+    build=$(echo "$version_info" | grep -oP '"builds":\[\K[0-9]+' | tail -1)
   fi
   
-  if [ -z "$build" ]; then
-    echo "    ✗ Failed to get build number for Paper ${version}"
+  if [ -z "$build" ] || ! [[ "$build" =~ ^[0-9]+$ ]]; then
+    echo "    ✗ Failed to get valid build number for Paper ${version} (got: '$build')"
     exit 1
   fi
   
-  # Get download URL
-  local download_name=$(curl -fsSL "https://api.papermc.io/v2/projects/paper/versions/${version}/builds/${build}" | \
-    grep -oP '"name":"\K[^"]+')
+  # Fetch build info
+  local build_info
+  build_info=$(curl -fsSL "https://api.papermc.io/v2/projects/paper/versions/${version}/builds/${build}" 2>/dev/null) || {
+    echo "    ✗ Failed to fetch Paper build info for ${version} build ${build}"
+    exit 1
+  }
   
-  echo "https://api.papermc.io/v2/projects/paper/versions/${version}/builds/${build}/downloads/${download_name}"
+  # Extract download name - use multiple extraction methods for robustness
+  local download_name
+  download_name=$(echo "$build_info" | grep -oP '"name":"\K[^"]+' | head -1)
+  
+  if [ -z "$download_name" ]; then
+    # Fallback: construct filename from known pattern
+    download_name="paper-${version}-${build}.jar"
+  fi
+  
+  # Construct and validate URL
+  local download_url="https://api.papermc.io/v2/projects/paper/versions/${version}/builds/${build}/downloads/${download_name}"
+  
+  # Basic URL validation: no spaces or invalid characters
+  if [[ "$download_url" =~ [^a-zA-Z0-9./_:-] ]]; then
+    echo "    ✗ Invalid characters in download URL"
+    exit 1
+  fi
+  
+  echo "$download_url"
 }
 
 # Function to get the latest Fabric installer
 get_fabric_url() {
   local version="$1"
   echo "    → Fetching Fabric installer for ${version}..."
+  
+  # Validate that Fabric supports this version
+  local fabric_versions
+  fabric_versions=$(curl -fsSL "https://meta.fabricmc.net/v2/versions" 2>/dev/null | grep -oP '"version":"\K[^"]+' | head -20) || {
+    echo "    ✗ Failed to fetch Fabric versions"
+    exit 1
+  }
+  
+  if ! echo "$fabric_versions" | grep -q "^${version}$"; then
+    echo "    ✗ Fabric does not support Minecraft version ${version}"
+    exit 1
+  fi
+  
   echo "https://meta.fabricmc.net/v2/versions/loader/${version}/stable/server/jar"
 }
 
@@ -68,14 +108,19 @@ get_forge_url() {
   local version="$1"
   echo "    → Fetching Forge installer for ${version}..."
   
-  # Get latest Forge version for the MC version
-  local forge_version=$(curl -fsSL "https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json" | \
-    grep -oP "\"${version}-latest\":\s*\"\K[^\"]+")
+  # Get promotions data
+  local promotions
+  promotions=$(curl -fsSL "https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json" 2>/dev/null) || {
+    echo "    ✗ Failed to fetch Forge promotions"
+    exit 1
+  }
+  
+  # Try latest, then recommended
+  local forge_version
+  forge_version=$(echo "$promotions" | grep -oP "\"${version}-latest\":\s*\"\K[^\"]+")
   
   if [ -z "$forge_version" ]; then
-    # Try recommended version
-    forge_version=$(curl -fsSL "https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json" | \
-      grep -oP "\"${version}-recommended\":\s*\"\K[^\"]+")
+    forge_version=$(echo "$promotions" | grep -oP "\"${version}-recommended\":\s*\"\K[^\"]+")
   fi
   
   if [ -z "$forge_version" ]; then
@@ -92,18 +137,41 @@ get_geyser_url() {
   local build="${1:-latest}"
   
   if [ "$build" = "latest" ]; then
-    build=$(curl -fsSL "https://download.geysermc.org/v2/projects/geyser/versions/latest/builds/latest" | \
-      grep -oP '"build":\K[0-9]+')
+    local build_info
+    build_info=$(curl -fsSL "https://download.geysermc.org/v2/projects/geyser/versions/latest/builds/latest" 2>/dev/null) || {
+      echo "    ✗ Failed to fetch Geyser build info"
+      exit 1
+    }
+    build=$(echo "$build_info" | grep -oP '"build":\K[0-9]+')
   fi
   
-  echo "https://download.geysermc.org/v2/projects/geyser/versions/latest/builds/${build}/downloads/standalone"
+  if [ -z "$build" ] || ! [[ "$build" =~ ^[0-9]+$ ]]; then
+    echo "    ✗ Failed to get valid Geyser build number"
+    exit 1
+  fi
+  
+  echo "https://download.geysermc.org/v2/projects/geyser/versions/latest/builds/${build}/downloads/geyser-standalone.jar"
 }
 
 # Function to get Velocity proxy
 get_velocity_url() {
   local version="${1:-3.0}"
-  echo "    → Fetching Velocity proxy..."
-  echo "https://api.papermc.io/v2/projects/velocity/versions/${version}/builds/latest/downloads/velocity-${version}-SNAPSHOT.jar"
+  echo "    → Fetching Velocity proxy for version ${version}..."
+  
+  local build_info
+  build_info=$(curl -fsSL "https://api.papermc.io/v2/projects/velocity/versions/${version}/builds/latest" 2>/dev/null) || {
+    echo "    ✗ Failed to fetch Velocity build info"
+    exit 1
+  }
+  
+  local download_name
+  download_name=$(echo "$build_info" | grep -oP '"name":"\K[^"]+' | head -1)
+  
+  if [ -z "$download_name" ]; then
+    download_name="velocity-${version}-SNAPSHOT.jar"
+  fi
+  
+  echo "https://api.papermc.io/v2/projects/velocity/versions/${version}/builds/latest/downloads/${download_name}"
 }
 
 ensure_java() {
@@ -207,11 +275,34 @@ case "$INSTALLER_TYPE" in
 esac
 
 echo "    → Downloading from: $INSTALLER_URL"
-curl -fL -o "$JAR_FILE" "$INSTALLER_URL" || {
-  echo "    ✗ Failed to download JAR"
+
+# Validate URL before attempting download
+if [ -z "$INSTALLER_URL" ] || ! [[ "$INSTALLER_URL" =~ ^https?:// ]]; then
+  echo "    ✗ Invalid or empty installer URL: $INSTALLER_URL"
   exit 1
-}
-echo "    ✓ Downloaded $(ls -lh "$JAR_FILE" | awk '{print $5}')"
+fi
+
+# Download with retry logic
+local retry_count=0
+local max_retries=3
+while [ $retry_count -lt $max_retries ]; do
+  if curl -fL -o "$JAR_FILE" "$INSTALLER_URL" 2>/dev/null; then
+    if [ -f "$JAR_FILE" ] && [ -s "$JAR_FILE" ]; then
+      echo "    ✓ Downloaded $(ls -lh "$JAR_FILE" | awk '{print $5}')"
+      break
+    fi
+  fi
+  retry_count=$((retry_count + 1))
+  if [ $retry_count -lt $max_retries ]; then
+    echo "    ⚠ Download attempt $retry_count failed, retrying..."
+    sleep 2
+  fi
+done
+
+if [ ! -f "$JAR_FILE" ] || [ ! -s "$JAR_FILE" ]; then
+  echo "    ✗ Failed to download JAR after $max_retries attempts"
+  exit 1
+fi
 
 # Step 4: Verify checksum if provided
 if [ -n "$JAR_CHECKSUM" ]; then
