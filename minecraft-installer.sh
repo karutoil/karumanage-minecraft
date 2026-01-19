@@ -106,7 +106,7 @@ cat > "$SYSTEMD_UNIT" << 'EOF'
 [Unit]
 Description=Minecraft Paper Server
 Documentation=https://papermc.io
-After=network-online.target minecraft-server.socket
+After=network-online.target
 Wants=network-online.target
 
 [Service]
@@ -114,12 +114,16 @@ Type=simple
 User=minecraft-srv
 Group=minecraft-srv
 
+# Socket input/output
+Sockets=minecraft-server.socket
+StandardInput=socket
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=minecraft
+
 # Security hardening
 NoNewPrivileges=true
-PrivateTmp=true
-ProtectSystem=strict
 ProtectHome=yes
-ReadWritePaths={{INSTALL_DIR}} {{INSTALL_DIR}}/worlds {{INSTALL_DIR}}/logs /run/minecraft-server.sock
 
 # Resource limits
 MemoryLimit=4G
@@ -136,11 +140,6 @@ KillMode=process
 KillSignal=SIGTERM
 TimeoutStopSec=30
 
-# Logging
-StandardOutput=journal
-StandardError=journal
-SyslogIdentifier=minecraft
-
 # Restart policy
 Restart=on-failure
 RestartSec=10
@@ -154,14 +153,15 @@ cat > "$SOCKET_UNIT" << 'EOF'
 [Unit]
 Description=Minecraft Server Console Socket
 Documentation=https://papermc.io
-Before=minecraft-server.service
+BindsTo=minecraft-server.service
 
 [Socket]
-ListenStream=/run/minecraft-server.sock
+ListenFIFO=/run/minecraft-server.socket
+Service=minecraft-server.service
+RemoveOnStop=true
 SocketMode=0660
 SocketUser=minecraft-srv
 SocketGroup=minecraft-srv
-Accept=false
 
 [Install]
 WantedBy=sockets.target
@@ -199,6 +199,12 @@ gamemode=0
 motd={{SERVER_MOTD}}
 EOF
 
+# Replace server.properties template variables with defaults if not set
+sed -i "s|{{PORT}}|${PORT:-25565}|g" "$INSTALL_DIR/server.properties"
+sed -i "s|{{WORLD_NAME}}|${WORLD_NAME:-world}|g" "$INSTALL_DIR/server.properties"
+sed -i "s|{{MAX_PLAYERS}}|${MAX_PLAYERS:-20}|g" "$INSTALL_DIR/server.properties"
+sed -i "s|{{SERVER_MOTD}}|${SERVER_MOTD:-A Minecraft Server}|g" "$INSTALL_DIR/server.properties"
+
 chown "$MINECRAFT_USER:$MINECRAFT_GROUP" "$INSTALL_DIR/server.properties"
 chmod 640 "$INSTALL_DIR/server.properties"
 echo "    ✓ Created server.properties template"
@@ -227,7 +233,8 @@ echo "   4. Send commands: echo 'command' | nc -U /run/minecraft-server.sock"
 echo ""
 echo "🔒 Security Notes:"
 echo "   • Server runs as non-root user: $MINECRAFT_USER"
-echo "   • Systemd uses ProtectSystem=strict, ProtectHome=yes"
+echo "   • Protected home directory: ProtectHome=yes"
+echo "   • No privilege escalation: NoNewPrivileges=true"
 echo "   • Memory limited to 4GB (adjust HEAP_MB in unit file)"
 echo "   • File permissions: 750 (owner+group only)"
 echo "   • Socket mode: 0660 (minecraft user + group only)"
