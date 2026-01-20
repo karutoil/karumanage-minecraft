@@ -185,8 +185,28 @@ fi
 
 echo "    ✓ Downloaded Hytale server files"
 
-# Step 6: Create systemd unit file
-echo "[6] Creating systemd service unit"
+# Step 6: Create environment file for dynamic configuration
+echo "[6] Creating environment configuration file"
+ENV_FILE="$INSTALL_DIR/.env"
+cat > "$ENV_FILE" << 'EOF'
+# Hytale Server Environment Configuration
+# This file is sourced by the systemd service
+# Edit these values and restart the service for changes to take effect
+
+# Java heap memory allocation (in MB)
+HEAP_MB={{HEAP_MB}}
+
+# Java options - customize as needed
+# These are the recommended GC settings for Hytale
+JAVA_OPTS=-server -Xms${HEAP_MB}M -Xmx${HEAP_MB}M -XX:MaxMetaspaceSize=512M -XX:+UnlockExperimentalVMOptions -XX:+UseShenandoahGC -XX:ShenandoahGCHeuristics=compact -XX:ShenandoahUncommitDelay=30000 -XX:ShenandoahAllocationThreshold=15 -XX:ShenandoahGuaranteedGCInterval=30000 -XX:+PerfDisableSharedMem -XX:+DisableExplicitGC -XX:+ParallelRefProcEnabled -XX:ParallelGCThreads=4 -XX:ConcGCThreads=2 -XX:+AlwaysPreTouch
+EOF
+
+chown "$HYTALE_USER:$HYTALE_GROUP" "$ENV_FILE"
+chmod 640 "$ENV_FILE"
+echo "    ✓ Created environment file: $ENV_FILE"
+
+# Step 7: Create systemd unit file
+echo "[7] Creating systemd service unit"
 SYSTEMD_UNIT="/etc/systemd/system/${SERVICE_NAME}.service"
 SOCKET_UNIT="/etc/systemd/system/${SERVICE_NAME}.socket"
 RUNTIME_SOCKET="/run/${SERVICE_NAME}.socket"
@@ -201,6 +221,9 @@ Wants=network-online.target
 Type=simple
 User=hytale-srv
 Group=hytale-srv
+
+# Load environment variables from config file
+EnvironmentFile={{INSTALL_DIR}}/.env
 
 # Socket input/output
 Sockets={{SERVICE_NAME}}.socket
@@ -221,7 +244,7 @@ LimitNOFILE=65536
 
 # Working directory and startup
 WorkingDirectory={{INSTALL_DIR}}/AppFiles
-ExecStart={{JAVA_BIN}} -server -Xms{{HEAP_MB}}M -Xmx{{HEAP_MB}}M -XX:MaxMetaspaceSize=512M -XX:+UnlockExperimentalVMOptions -XX:+UseShenandoahGC -XX:ShenandoahGCHeuristics=compact -XX:ShenandoahUncommitDelay=30000 -XX:ShenandoahAllocationThreshold=15 -XX:ShenandoahGuaranteedGCInterval=30000 -XX:+PerfDisableSharedMem -XX:+DisableExplicitGC -XX:+ParallelRefProcEnabled -XX:ParallelGCThreads=4 -XX:ConcGCThreads=2 -XX:+AlwaysPreTouch -jar {{INSTALL_DIR}}/AppFiles/Server/HytaleServer.jar --assets {{INSTALL_DIR}}/AppFiles/Assets.zip --accept-early-plugins
+ExecStart={{JAVA_BIN}} $JAVA_OPTS -jar {{INSTALL_DIR}}/AppFiles/Server/HytaleServer.jar --assets {{INSTALL_DIR}}/AppFiles/Assets.zip --accept-early-plugins
 
 # Graceful shutdown
 KillMode=process
@@ -255,9 +278,11 @@ SocketGroup=hytale-srv
 WantedBy=sockets.target
 EOF
 
-# Replace template variables
+# Replace template variables in env file
+sed -i "s|{{HEAP_MB}}|${HEAP_MB:-4096}|g" "$ENV_FILE"
+
+# Replace template variables in systemd units
 sed -i "s|{{INSTALL_DIR}}|$INSTALL_DIR|g" "$SYSTEMD_UNIT"
-sed -i "s|{{HEAP_MB}}|${HEAP_MB:-4096}|g" "$SYSTEMD_UNIT"
 sed -i "s|{{SERVICE_NAME}}|$SERVICE_NAME|g" "$SYSTEMD_UNIT"
 sed -i "s|{{JAVA_BIN}}|$JAVA_BIN|g" "$SYSTEMD_UNIT"
 sed -i "s|{{RUNTIME_SOCKET}}|$RUNTIME_SOCKET|g" "$SOCKET_UNIT"
@@ -267,8 +292,8 @@ sed -i "s|{{SERVICE_NAME}}|$SERVICE_NAME|g" "$SOCKET_UNIT"
 echo "    ✓ Created $SYSTEMD_UNIT"
 echo "    ✓ Created $SOCKET_UNIT"
 
-# Step 7: Create server configuration file
-echo "[7] Creating server configuration template"
+# Step 8: Create server configuration file
+echo "[8] Creating server configuration template"
 cat > "$INSTALL_DIR/AppFiles/Server/config.json" << 'EOF'
 {
   "ServerName": "{{SERVER_NAME}}",
@@ -292,8 +317,8 @@ chown "$HYTALE_USER:$HYTALE_GROUP" "$INSTALL_DIR/AppFiles/Server/config.json"
 chmod 640 "$INSTALL_DIR/AppFiles/Server/config.json"
 echo "    ✓ Created server configuration template"
 
-# Step 8: Reload systemd and show status
-echo "[8] Finalizing systemd configuration"
+# Step 9: Reload systemd and show status
+echo "[9] Finalizing systemd configuration"
 systemctl daemon-reload
 systemctl enable ${SERVICE_NAME}.service 2>/dev/null || true
 systemctl enable ${SERVICE_NAME}.socket 2>/dev/null || true
