@@ -2,16 +2,16 @@
 set -euo pipefail
 
 # Multi-Variant Minecraft Server Installer
-# Supports: Paper, Forge, Fabric, Geyser, Velocity, etc.
+# Uses MCJars.app unified API for simplified downloads
+# Supports: Paper, Forge, Fabric, Geyser, Velocity, Purpur, Pufferfish, Folia
 # 
 # Required environment variables:
 #   INSTANCE_ID - UUID of the instance
-#   INSTALLER_TYPE - Type of installer (paper, forge, fabric, geyser, velocity)
-#   MINECRAFT_VERSION - Minecraft version (e.g., 1.21.1, 1.20.4, 1.18.2)
+#   INSTALLER_TYPE - Type of installer (paper, forge, fabric, geyser, velocity, purpur, pufferfish, folia)
+#   MINECRAFT_VERSION - Minecraft version (e.g., 1.21.1, 1.20.4, 1.18.2) or "latest" for Geyser
 #
 # Optional environment variables:
-#   BUILD_NUMBER - Specific build number (for Paper, Geyser, Velocity)
-#   INSTALLER_URL - Direct URL to installer/server JAR (overrides auto-detection)
+#   INSTALLER_URL - Direct URL to installer/server JAR (overrides MCJars API)
 #   JAR_CHECKSUM - SHA256 checksum for verification
 #   INSTALL_DIR - Installation directory (default: /opt/minecraft-${INSTANCE_ID})
 #   PORT - Server port (default: 25565)
@@ -22,7 +22,6 @@ set -euo pipefail
 
 INSTALLER_TYPE="${INSTALLER_TYPE:-paper}"
 MINECRAFT_VERSION="${MINECRAFT_VERSION:-1.21.1}"
-BUILD_NUMBER="${BUILD_NUMBER:-latest}"
 INSTALLER_URL="${INSTALLER_URL:-}"
 JAR_CHECKSUM="${JAR_CHECKSUM:-}"
 INSTANCE_ID="${INSTANCE_ID:-default}"
@@ -49,153 +48,77 @@ run_cmd_silent() {
   fi
 }
 
-# Function to get the latest Paper build
-get_paper_url() {
-  local version="$1"
-  local build="${2:-latest}"
+# Function to get JAR URL from MCJars API
+# Supports: PAPER, FABRIC, FORGE, GEYSER, VELOCITY, PURPUR, PUFFERFISH, FOLIA, etc.
+get_mcjars_url() {
+  local server_type="$1"
+  local version="$2"
   
-  echo "    → Fetching Paper build information for ${version}..." >&2
-  
-  # Fetch version info
-  local version_info
-  version_info=$(curl -fsSL "https://api.papermc.io/v2/projects/paper/versions/${version}" 2>/dev/null) || {
-    echo "    ✗ Failed to fetch Paper version info for ${version}" >&2
-    exit 1
-  }
-  
-  if [ "$build" = "latest" ]; then
-    # Get latest build number from JSON response
-    build=$(echo "$version_info" | grep -oP '"builds":\[\K[0-9]+' | tail -1 | tr -d '\n\r\t ')
-  fi
-  
-  if [ -z "$build" ] || ! [[ "$build" =~ ^[0-9]+$ ]]; then
-    echo "    ✗ Failed to get valid build number for Paper ${version} (got: '$build')" >&2
-    exit 1
-  fi
-  
-  # Fetch build info
-  local build_info
-  build_info=$(curl -fsSL "https://api.papermc.io/v2/projects/paper/versions/${version}/builds/${build}" 2>/dev/null) || {
-    echo "    ✗ Failed to fetch Paper build info for ${version} build ${build}" >&2
-    exit 1
-  }
-  
-  # Extract download name - use multiple extraction methods for robustness
-  local download_name
-  download_name=$(echo "$build_info" | grep -oP '"name":"\K[^"]+' | head -1 | tr -d '\n\r\t ' | xargs)
-  
-  if [ -z "$download_name" ]; then
-    # Fallback: construct filename from known pattern
-    download_name="paper-${version}-${build}.jar"
-  fi
-  
-  # Construct and validate URL
-  local download_url="https://api.papermc.io/v2/projects/paper/versions/${version}/builds/${build}/downloads/${download_name}"
-  
-  # Ensure URL has no embedded whitespace
-  download_url=$(echo "$download_url" | tr -d '\n\r\t ')
-  
-  # Basic URL validation: no spaces or invalid characters
-  if [[ "$download_url" =~ [^a-zA-Z0-9./_:-] ]]; then
-    echo "    ✗ Invalid characters in download URL" >&2
-    exit 1
-  fi
-  
-  # Only output the URL itself (to stdout)
-  echo "$download_url"
-}
-
-# Function to get the latest Fabric installer
-get_fabric_url() {
-  local version="$1"
-  echo "    → Fetching Fabric installer for ${version}..." >&2
-  
-  # Validate that Fabric supports this version
-  local fabric_versions
-  fabric_versions=$(curl -fsSL "https://meta.fabricmc.net/v2/versions" 2>/dev/null | grep -oP '"version":"\K[^"]+' | head -20) || {
-    echo "    ✗ Failed to fetch Fabric versions" >&2
-    exit 1
-  }
-  
-  if ! echo "$fabric_versions" | grep -q "^${version}$"; then
-    echo "    ✗ Fabric does not support Minecraft version ${version}" >&2
-    exit 1
-  fi
-  
-  echo "https://meta.fabricmc.net/v2/versions/loader/${version}/stable/server/jar"
-}
-
-# Function to get the latest Forge installer
-get_forge_url() {
-  local version="$1"
-  echo "    → Fetching Forge installer for ${version}..." >&2
-  
-  # Get promotions data
-  local promotions
-  promotions=$(curl -fsSL "https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json" 2>/dev/null) || {
-    echo "    ✗ Failed to fetch Forge promotions" >&2
-    exit 1
-  }
-  
-  # Try latest, then recommended
-  local forge_version
-  forge_version=$(echo "$promotions" | grep -oP "\"${version}-latest\":\s*\"\K[^\"]+")
-  forge_version=$(echo "$forge_version" | tr -d '\n\r\t ')
-  
-  if [ -z "$forge_version" ]; then
-    forge_version=$(echo "$promotions" | grep -oP "\"${version}-recommended\":\s*\"\K[^\"]+")
-    forge_version=$(echo "$forge_version" | tr -d '\n\r\t ')
-  fi
-  
-  if [ -z "$forge_version" ]; then
-    echo "    ✗ No Forge version found for Minecraft ${version}" >&2
-    exit 1
-  fi
-  
-  echo "https://maven.minecraftforge.net/net/minecraftforge/forge/${version}-${forge_version}/forge-${version}-${forge_version}-installer.jar"
-}
-
-# Function to get Geyser standalone
-get_geyser_url() {
-  echo "    → Fetching Geyser standalone..." >&2
-  local build="${1:-latest}"
-  
-  if [ "$build" = "latest" ]; then
-    local build_info
-    build_info=$(curl -fsSL "https://download.geysermc.org/v2/projects/geyser/versions/latest/builds/latest" 2>/dev/null) || {
-      echo "    ✗ Failed to fetch Geyser build info" >&2
+  # Convert installer type to MCJars API type (uppercase)
+  local api_type
+  case "$server_type" in
+    paper) api_type="PAPER" ;;
+    fabric) api_type="FABRIC" ;;
+    forge) api_type="FORGE" ;;
+    geyser) api_type="GEYSER" ;;
+    velocity) api_type="VELOCITY" ;;
+    purpur) api_type="PURPUR" ;;
+    pufferfish) api_type="PUFFERFISH" ;;
+    folia) api_type="FOLIA" ;;
+    *)
+      echo "    ✗ Unsupported server type: $server_type" >&2
       exit 1
-    }
-    build=$(echo "$build_info" | grep -oP '"build":\K[0-9]+' | tr -d '\n\r\t ')
+      ;;
+  esac
+  
+  echo "    → Fetching ${server_type} build from MCJars API for version ${version}..." >&2
+  
+  # Special handling for Geyser (version-agnostic)
+  local api_endpoint
+  if [ "$server_type" = "geyser" ]; then
+    api_endpoint="https://mcjars.app/api/v2/builds/${api_type}"
+  else
+    api_endpoint="https://mcjars.app/api/v2/builds/${api_type}/${version}"
   fi
   
-  if [ -z "$build" ] || ! [[ "$build" =~ ^[0-9]+$ ]]; then
-    echo "    ✗ Failed to get valid Geyser build number" >&2
-    exit 1
-  fi
-  
-  echo "https://download.geysermc.org/v2/projects/geyser/versions/latest/builds/${build}/downloads/geyser-standalone.jar"
-}
-
-# Function to get Velocity proxy
-get_velocity_url() {
-  local version="${1:-3.0}"
-  echo "    → Fetching Velocity proxy for version ${version}..." >&2
-  
-  local build_info
-  build_info=$(curl -fsSL "https://api.papermc.io/v2/projects/velocity/versions/${version}/builds/latest" 2>/dev/null) || {
-    echo "    ✗ Failed to fetch Velocity build info" >&2
+  # Fetch builds list
+  local build_response
+  build_response=$(curl -fsSL "$api_endpoint" 2>/dev/null) || {
+    echo "    ✗ Failed to fetch build info from MCJars API" >&2
+    echo "    API endpoint: $api_endpoint" >&2
     exit 1
   }
   
-  local download_name
-  download_name=$(echo "$build_info" | grep -oP '"name":"\K[^"]+' | head -1 | tr -d '\n\r\t ')
-  
-  if [ -z "$download_name" ]; then
-    download_name="velocity-${version}-SNAPSHOT.jar"
+  # Check if API returned success
+  if ! echo "$build_response" | grep -q '"success":true'; then
+    echo "    ✗ MCJars API returned an error" >&2
+    echo "    Response: $build_response" >&2
+    exit 1
   fi
   
-  echo "https://api.papermc.io/v2/projects/velocity/versions/${version}/builds/latest/downloads/${download_name}"
+  # Extract JAR URL from latest build
+  local jar_url
+  if [ "$server_type" = "geyser" ]; then
+    # For Geyser, get the latest build from the version list
+    jar_url=$(echo "$build_response" | grep -oP '"jarUrl":"\K[^"]+' | head -1 | tr -d '\n\r\t ')
+  else
+    # For versioned servers, get the latest build for that version
+    jar_url=$(echo "$build_response" | grep -oP '"jarUrl":"\K[^"]+' | head -1 | tr -d '\n\r\t ')
+  fi
+  
+  if [ -z "$jar_url" ]; then
+    echo "    ✗ Failed to extract JAR URL from MCJars API response" >&2
+    echo "    Check if version ${version} is supported for ${server_type}" >&2
+    exit 1
+  fi
+  
+  # Validate URL
+  if ! [[ "$jar_url" =~ ^https?:// ]]; then
+    echo "    ✗ Invalid JAR URL received: $jar_url" >&2
+    exit 1
+  fi
+  
+  echo "$jar_url"
 }
 
 ensure_java() {
@@ -228,7 +151,7 @@ ensure_java() {
   echo "    ✓ Java installed: $(java -version 2>&1 | head -1)"
 }
 
-echo "[*] Multi-Variant Minecraft Server Installer"
+echo "[*] Multi-Variant Minecraft Server Installer (via MCJars.app API)"
 echo "    Installer Type: ${INSTALLER_TYPE}"
 echo "    Minecraft Version: ${MINECRAFT_VERSION}"
 if [ "$DRY_RUN" = "1" ]; then
@@ -274,32 +197,47 @@ echo "[3] Downloading ${INSTALLER_TYPE} server JAR"
 case "$INSTALLER_TYPE" in
   paper)
     JAR_FILE="$INSTALL_DIR/paper-server.jar"
-    [ -z "$INSTALLER_URL" ] && INSTALLER_URL=$(get_paper_url "$MINECRAFT_VERSION" "$BUILD_NUMBER")
+    [ -z "$INSTALLER_URL" ] && INSTALLER_URL=$(get_mcjars_url "paper" "$MINECRAFT_VERSION")
     JAVA_VERSION=21
     ;;
   fabric)
     JAR_FILE="$INSTALL_DIR/fabric-server.jar"
-    [ -z "$INSTALLER_URL" ] && INSTALLER_URL=$(get_fabric_url "$MINECRAFT_VERSION")
+    [ -z "$INSTALLER_URL" ] && INSTALLER_URL=$(get_mcjars_url "fabric" "$MINECRAFT_VERSION")
     JAVA_VERSION=21
     ;;
   forge)
     JAR_FILE="$INSTALL_DIR/forge-installer.jar"
-    [ -z "$INSTALLER_URL" ] && INSTALLER_URL=$(get_forge_url "$MINECRAFT_VERSION")
+    [ -z "$INSTALLER_URL" ] && INSTALLER_URL=$(get_mcjars_url "forge" "$MINECRAFT_VERSION")
     JAVA_VERSION=17
     ;;
   geyser)
     JAR_FILE="$INSTALL_DIR/geyser-standalone.jar"
-    [ -z "$INSTALLER_URL" ] && INSTALLER_URL=$(get_geyser_url "$BUILD_NUMBER")
+    [ -z "$INSTALLER_URL" ] && INSTALLER_URL=$(get_mcjars_url "geyser" "latest")
     JAVA_VERSION=17
     ;;
   velocity)
     JAR_FILE="$INSTALL_DIR/velocity.jar"
-    [ -z "$INSTALLER_URL" ] && INSTALLER_URL=$(get_velocity_url "$MINECRAFT_VERSION")
+    [ -z "$INSTALLER_URL" ] && INSTALLER_URL=$(get_mcjars_url "velocity" "$MINECRAFT_VERSION")
     JAVA_VERSION=17
+    ;;
+  purpur)
+    JAR_FILE="$INSTALL_DIR/purpur-server.jar"
+    [ -z "$INSTALLER_URL" ] && INSTALLER_URL=$(get_mcjars_url "purpur" "$MINECRAFT_VERSION")
+    JAVA_VERSION=21
+    ;;
+  pufferfish)
+    JAR_FILE="$INSTALL_DIR/pufferfish-server.jar"
+    [ -z "$INSTALLER_URL" ] && INSTALLER_URL=$(get_mcjars_url "pufferfish" "$MINECRAFT_VERSION")
+    JAVA_VERSION=21
+    ;;
+  folia)
+    JAR_FILE="$INSTALL_DIR/folia-server.jar"
+    [ -z "$INSTALLER_URL" ] && INSTALLER_URL=$(get_mcjars_url "folia" "$MINECRAFT_VERSION")
+    JAVA_VERSION=21
     ;;
   *)
     echo "    ✗ Unsupported installer type: $INSTALLER_TYPE"
-    echo "    Supported: paper, fabric, forge, geyser, velocity"
+    echo "    Supported: paper, fabric, forge, geyser, velocity, purpur, pufferfish, folia"
     exit 1
     ;;
 esac

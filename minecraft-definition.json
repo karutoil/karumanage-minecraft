@@ -1,21 +1,320 @@
 {
   "meta": {
     "name": "Minecraft Java Edition",
-    "version": "1.21.11",
-    "author": "PaperMC"
+    "version": "0",
+    "author": "Paper/Forge/Fabric/Geyser/Velocity"
   },
   "compat": {
-    "os": ["linux"],
-    "arch": ["x86_64", "aarch64"]
+    "os": [
+      "linux"
+    ],
+    "arch": [
+      "x86_64",
+      "aarch64"
+    ]
   },
   "install": {
-    "script": "https://raw.githubusercontent.com/karutoil/karumanage-minecraft/refs/heads/main/minecraft-installer.sh",
+    "script": "https://raw.githubusercontent.com/karutoil/karumanage-minecraft/refs/heads/main/minecraft-installer-multi.sh",
     "dir": "/opt/minecraft-${INSTANCE_ID}",
-    "deps": ["curl", "openjdk-21-jre-headless"],
+    "deps": [
+      "curl",
+      "openjdk-21-jre-headless"
+    ],
+    "variants": [
+      {
+        "id": "paper",
+        "name": "PaperMC",
+        "description": "High-performance Minecraft server with extensive plugin support",
+        "versions": [
+          {
+            "version": "1.21.1",
+            "build": "latest",
+            "env": {
+              "INSTALLER_TYPE": "paper",
+              "MINECRAFT_VERSION": "1.21.1"
+            }
+          },
+          {
+            "version": "1.21",
+            "build": "latest",
+            "env": {
+              "INSTALLER_TYPE": "paper",
+              "MINECRAFT_VERSION": "1.21"
+            }
+          },
+          {
+            "version": "1.20.6",
+            "build": "latest",
+            "env": {
+              "INSTALLER_TYPE": "paper",
+              "MINECRAFT_VERSION": "1.20.6"
+            }
+          },
+          {
+            "version": "1.20.4",
+            "build": "latest",
+            "env": {
+              "INSTALLER_TYPE": "paper",
+              "MINECRAFT_VERSION": "1.20.4"
+            }
+          },
+          {
+            "version": "1.19.4",
+            "build": "latest",
+            "env": {
+              "INSTALLER_TYPE": "paper",
+              "MINECRAFT_VERSION": "1.19.4"
+            }
+          },
+          {
+            "version": "1.18.2",
+            "build": "latest",
+            "env": {
+              "INSTALLER_TYPE": "paper",
+              "MINECRAFT_VERSION": "1.18.2"
+            }
+          }
+        ]
+      },
+      {
+        "id": "fabric",
+        "name": "Fabric",
+        "description": "Lightweight, experimental modding toolchain for Minecraft",
+        "versions": [
+          {
+            "version": "1.21.1",
+            "env": {
+              "INSTALLER_TYPE": "fabric",
+              "MINECRAFT_VERSION": "1.21.1"
+            }
+          },
+          {
+            "version": "1.21",
+            "env": {
+              "INSTALLER_TYPE": "fabric",
+              "MINECRAFT_VERSION": "1.21"
+            }
+          },
+          {
+            "version": "1.20.6",
+            "env": {
+              "INSTALLER_TYPE": "fabric",
+              "MINECRAFT_VERSION": "1.20.6"
+            }
+          },
+          {
+            "version": "1.20.4",
+            "env": {
+              "INSTALLER_TYPE": "fabric",
+              "MINECRAFT_VERSION": "1.20.4"
+            }
+          },
+          {
+            "version": "1.19.4",
+            "env": {
+              "INSTALLER_TYPE": "fabric",
+              "MINECRAFT_VERSION": "1.19.4"
+            }
+          },
+          {
+            "version": "1.18.2",
+            "env": {
+              "INSTALLER_TYPE": "fabric",
+              "MINECRAFT_VERSION": "1.18.2"
+            }
+          }
+        ]
+      },
+      {
+        "id": "forge",
+        "name": "Forge",
+        "description": "The most popular Minecraft modding platform",
+        "versions": [
+          {
+            "version": "1.20.6",
+            "env": {
+              "INSTALLER_TYPE": "forge",
+              "MINECRAFT_VERSION": "1.20.6"
+            }
+          },
+          {
+            "version": "1.20.4",
+            "env": {
+              "INSTALLER_TYPE": "forge",
+              "MINECRAFT_VERSION": "1.20.4"
+            }
+          },
+          {
+            "version": "1.20.1",
+            "env": {
+              "INSTALLER_TYPE": "forge",
+              "MINECRAFT_VERSION": "1.20.1"
+            }
+          },
+          {
+            "version": "1.19.4",
+            "env": {
+              "INSTALLER_TYPE": "forge",
+              "MINECRAFT_VERSION": "1.19.4"
+            }
+          },
+          {
+            "version": "1.18.2",
+            "env": {
+              "INSTALLER_TYPE": "forge",
+              "MINECRAFT_VERSION": "1.18.2"
+            }
+          },
+          {
+            "version": "1.16.5",
+            "env": {
+              "INSTALLER_TYPE": "forge",
+              "MINECRAFT_VERSION": "1.16.5"
+            }
+          }
+        ]
+      },
+      {
+        "id": "geyser",
+        "name": "Geyser",
+        "description": "Bridge between Minecraft: Java Edition and Bedrock Edition",
+        "versions": [
+          {
+            "version": "latest",
+            "build": "latest",
+            "env": {
+              "INSTALLER_TYPE": "geyser",
+              "MINECRAFT_VERSION": "latest"
+            }
+          }
+        ]
+      },
+      {
+        "id": "velocity",
+        "name": "Velocity",
+        "description": "Modern, high-performance Minecraft proxy",
+        "versions": [
+          {
+            "version": "3.3.0",
+            "env": {
+              "INSTALLER_TYPE": "velocity",
+              "MINECRAFT_VERSION": "3.3.0"
+            }
+          },
+          {
+            "version": "3.2.0",
+            "env": {
+              "INSTALLER_TYPE": "velocity",
+              "MINECRAFT_VERSION": "3.2.0"
+            }
+          }
+        ]
+      },
+      {
+        "id": "purpur",
+        "name": "Purpur",
+        "description": "Fork of Paper with additional features and configuration options",
+        "versions": [
+          {
+            "version": "1.21.1",
+            "build": "latest",
+            "env": {
+              "INSTALLER_TYPE": "purpur",
+              "MINECRAFT_VERSION": "1.21.1"
+            }
+          },
+          {
+            "version": "1.21",
+            "build": "latest",
+            "env": {
+              "INSTALLER_TYPE": "purpur",
+              "MINECRAFT_VERSION": "1.21"
+            }
+          },
+          {
+            "version": "1.20.6",
+            "build": "latest",
+            "env": {
+              "INSTALLER_TYPE": "purpur",
+              "MINECRAFT_VERSION": "1.20.6"
+            }
+          },
+          {
+            "version": "1.20.4",
+            "build": "latest",
+            "env": {
+              "INSTALLER_TYPE": "purpur",
+              "MINECRAFT_VERSION": "1.20.4"
+            }
+          }
+        ]
+      },
+      {
+        "id": "pufferfish",
+        "name": "Pufferfish",
+        "description": "Highly optimized Paper fork for large servers",
+        "versions": [
+          {
+            "version": "1.21.1",
+            "build": "latest",
+            "env": {
+              "INSTALLER_TYPE": "pufferfish",
+              "MINECRAFT_VERSION": "1.21.1"
+            }
+          },
+          {
+            "version": "1.20.6",
+            "build": "latest",
+            "env": {
+              "INSTALLER_TYPE": "pufferfish",
+              "MINECRAFT_VERSION": "1.20.6"
+            }
+          },
+          {
+            "version": "1.20.4",
+            "build": "latest",
+            "env": {
+              "INSTALLER_TYPE": "pufferfish",
+              "MINECRAFT_VERSION": "1.20.4"
+            }
+          }
+        ]
+      },
+      {
+        "id": "folia",
+        "name": "Folia",
+        "description": "Paper fork that adds regionised multithreading",
+        "versions": [
+          {
+            "version": "1.21.1",
+            "build": "latest",
+            "env": {
+              "INSTALLER_TYPE": "folia",
+              "MINECRAFT_VERSION": "1.21.1"
+            }
+          },
+          {
+            "version": "1.20.6",
+            "build": "latest",
+            "env": {
+              "INSTALLER_TYPE": "folia",
+              "MINECRAFT_VERSION": "1.20.6"
+            }
+          },
+          {
+            "version": "1.20.4",
+            "build": "latest",
+            "env": {
+              "INSTALLER_TYPE": "folia",
+              "MINECRAFT_VERSION": "1.20.4"
+            }
+          }
+        ]
+      }
+    ],
     "env": {
       "MINECRAFT_USER": "minecraft-srv",
-      "MINECRAFT_GROUP": "minecraft-srv",
-      "PAPER_JAR_CHECKSUM": ""
+      "MINECRAFT_GROUP": "minecraft-srv"
     }
   },
   "uninstall": {
@@ -29,7 +328,6 @@
     "cwd": "/opt/minecraft-${INSTANCE_ID}",
     "env": {
       "JAVA_OPTS": "-Xmx2048M -Xms2048M",
-      "PAPER_JAR_URL": "https://fill-data.papermc.io/v1/objects/b727f13945dd442cd2bc1de6c64680e8630e7f54ba259aac7687e9c7c3cc18a3/paper-1.21.11-97.jar",
       "HEAP_MB": "2048",
       "PORT": "25565",
       "WORLD_NAME": "world",
@@ -37,7 +335,7 @@
       "SERVER_MOTD": "A Minecraft Server"
     },
     "process": {
-      "match": "paper-server.jar",
+      "match": "minecraft|paper|fabric|forge",
       "pidFile": "/var/run/minecraft-server-${INSTANCE_ID}.pid"
     }
   },
@@ -85,6 +383,10 @@
       {
         "path": "/opt/minecraft-${INSTANCE_ID}/spigot.yml",
         "format": "yaml"
+      },
+      {
+        "path": "/opt/minecraft-${INSTANCE_ID}/config/velocity.toml",
+        "format": "toml"
       }
     ]
   },
