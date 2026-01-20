@@ -1,17 +1,20 @@
 #!/bin/bash
 set -euo pipefail
 
-# Hytale Server Uninstaller
-# Supports keeping data or full removal
+# Hytale Server Uninstaller for LXC Containers
+# Simplified for container environment
+#
+# Required environment variables:
+#   INSTANCE_ID - UUID of the instance (e.g., 16652474-c4a3-4b9a-8fb4-b1c7a5bb1681)
+#
+# Usage: INSTANCE_ID=<uuid> ./hytale-uninstall.sh
+#
+# Optional environment variables:
+#   INSTALL_DIR - Override data dir (default: /srv/game)
+#   KEEP_FILES - Set to true to preserve game files
 
-INSTANCE_ID="${INSTANCE_ID:-default}" # UUID for unique service names
-SERVICE_NAME="hytale-server-${INSTANCE_ID}"
-UNIT_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
-SOCKET_FILE="/etc/systemd/system/${SERVICE_NAME}.socket"
-RUNTIME_SOCKET="/run/${SERVICE_NAME}.socket"
-DATA_DIR="${INSTALL_DIR:-/opt/hytale-${INSTANCE_ID}}"
-USER_NAME="hytale-srv"
-GROUP_NAME="hytale-srv"
+INSTANCE_ID="${INSTANCE_ID:-default}"
+INSTALL_DIR="${INSTALL_DIR:-/srv/game}"
 KEEP_FILES="${KEEP_FILES:-false}"
 
 usage() {
@@ -19,15 +22,15 @@ usage() {
 Usage: INSTANCE_ID=<uuid> hytale-uninstall.sh [--keep-files]
 
 Options:
-  --keep-files   Keep /opt/hytale-<uuid> contents, user, and group
+  --keep-files   Keep /srv/game contents for data preservation
   -h, --help     Show this help
 
 Required Env vars:
-  INSTANCE_ID    UUID of the instance to uninstall (e.g., 16652474-c4a3-4b9a-8fb4-b1c7a5bb1681)
+  INSTANCE_ID    UUID of the instance (e.g., 16652474-c4a3-4b9a-8fb4-b1c7a5bb1681)
 
 Optional Env vars:
-  INSTALL_DIR    Override data dir (default: /opt/hytale-${INSTANCE_ID})
-  KEEP_FILES     Set to true to preserve files/user/group
+  INSTALL_DIR    Override data dir (default: /srv/game)
+  KEEP_FILES     Set to true to preserve files
 
 Examples:
   INSTANCE_ID=abc123 ./hytale-uninstall.sh
@@ -41,90 +44,59 @@ for arg in "$@"; do
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown option: $arg"; usage; exit 1 ;;
   esac
-  shift || true
-
 done
 
-log() { echo "$1"; }
+log() { echo "[hytale] $1"; }
 
-# 1) Stop service if running
-if systemctl list-units --full -all | grep -q "${SERVICE_NAME}.service"; then
-  log "[1] Stopping service ${SERVICE_NAME}"
-  systemctl stop "${SERVICE_NAME}" 2>/dev/null || true
-  systemctl disable "${SERVICE_NAME}" 2>/dev/null || true
+log "Hytale Server Uninstaller (LXC Container)"
+log "Instance ID: $INSTANCE_ID"
+log ""
+
+# Step 1: Stop any running Java processes
+log "[1/3] Stopping Hytale process"
+if pgrep -f HytaleServer.jar > /dev/null 2>&1; then
+  log "    Sending SIGTERM to HytaleServer.jar"
+  pkill -15 -f HytaleServer.jar || true
+  sleep 2
+  
+  # Force kill if still running
+  if pgrep -f HytaleServer.jar > /dev/null 2>&1; then
+    log "    Force killing remaining process"
+    pkill -9 -f HytaleServer.jar || true
+  fi
+  log "    ✓ Process stopped"
 else
-  log "[1] Service ${SERVICE_NAME} not found"
+  log "    ✓ No process running"
 fi
 
-# 1.5) Stop and disable socket if running
-if systemctl list-units --full -all | grep -q "${SERVICE_NAME}.socket"; then
-  log "[1.5] Stopping socket ${SERVICE_NAME}.socket"
-  systemctl stop "${SERVICE_NAME}.socket" 2>/dev/null || true
-  systemctl disable "${SERVICE_NAME}.socket" 2>/dev/null || true
+# Step 2: Clean up temporary files
+log "[2/3] Cleaning up temporary files"
+if [ -d "$INSTALL_DIR/AppFiles" ]; then
+  # Remove downloader and temp files but keep server JAR
+  rm -f "$INSTALL_DIR/AppFiles/hytale-downloader.zip" 2>/dev/null || true
+  rm -f "$INSTALL_DIR/AppFiles/hytale-downloader-linux-amd64" 2>/dev/null || true
+  rm -f "$INSTALL_DIR/server.env" 2>/dev/null || true
+  log "    ✓ Temporary files removed"
 else
-  log "[1.5] Socket ${SERVICE_NAME}.socket not found"
+  log "    ✓ No temporary files to clean"
 fi
 
-# 1b) Kill any remaining Java processes running as hytale-srv
-if id "${USER_NAME}" &>/dev/null 2>&1; then
-  log "[1b] Killing remaining Java processes for user ${USER_NAME}"
-  pkill -9 -u "${USER_NAME}" 2>/dev/null || true
-  sleep 1
-fi
-
-# 2) Remove systemd units
-if [ -f "${UNIT_FILE}" ]; then
-  log "[2] Removing systemd unit ${UNIT_FILE}"
-  rm -f "${UNIT_FILE}"
-else
-  log "[2] Systemd unit not present"
-fi
-
-if [ -f "${SOCKET_FILE}" ]; then
-  log "[2.5] Removing systemd socket unit ${SOCKET_FILE}"
-  rm -f "${SOCKET_FILE}"
-else
-  log "[2.5] Systemd socket unit not present"
-fi
-
-# Reload systemd after removing units
-systemctl daemon-reload 2>/dev/null || true
-
-# 2.7) Remove runtime socket if it exists
-if [ -S "${RUNTIME_SOCKET}" ]; then
-  log "[2.7] Removing runtime socket ${RUNTIME_SOCKET}"
-  rm -f "${RUNTIME_SOCKET}"
-else
-  log "[2.7] Runtime socket already removed"
-fi
-
-if [ "${KEEP_FILES}" = "true" ]; then
-  log "[3] Keeping files and user/group as requested"
-  log "    Data directory preserved at ${DATA_DIR}"
+# Step 3: Handle data preservation
+if [ "$KEEP_FILES" = "true" ]; then
+  log "[3/3] Preserving game files as requested"
+  log "    ✓ Game data preserved at: $INSTALL_DIR"
+  log ""
+  log "✅ Uninstall complete (data preserved)"
   exit 0
 fi
 
-# 3) Remove data directory
-if [ -d "${DATA_DIR}" ]; then
-  log "[3] Removing data directory ${DATA_DIR}"
-  rm -rf "${DATA_DIR}"
+log "[3/3] Removing game files"
+if [ -d "$INSTALL_DIR" ]; then
+  rm -rf "$INSTALL_DIR"
+  log "    ✓ Game directory removed"
 else
-  log "[3] Data directory already removed (${DATA_DIR})"
+  log "    ✓ Directory already removed"
 fi
 
-# 4) Remove user and group if they exist
-if id "${USER_NAME}" &>/dev/null; then
-  log "[4] Removing user ${USER_NAME}"
-  userdel -r "${USER_NAME}" 2>/dev/null || userdel "${USER_NAME}" || true
-else
-  log "[4] User ${USER_NAME} not present"
-fi
-
-if getent group "${GROUP_NAME}" >/dev/null; then
-  log "[5] Removing group ${GROUP_NAME}"
-  groupdel "${GROUP_NAME}" || true
-else
-  log "[5] Group ${GROUP_NAME} not present"
-fi
-
+log ""
 log "✅ Uninstall complete"
