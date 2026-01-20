@@ -1,38 +1,398 @@
 {
   "meta": {
-    "name": "Hytale Dedicated Server",
-    "version": "latest",
-    "author": "Hypixel Studios"
+    "name": "Minecraft Java Edition",
+    "version": "0",
+    "author": "Paper/Forge/Fabric/Geyser/Velocity"
   },
   "compat": {
-    "os": ["linux"],
-    "arch": ["x86_64", "aarch64"]
+    "os": [
+      "linux"
+    ],
+    "arch": [
+      "x86_64",
+      "aarch64"
+    ]
   },
   "install": {
-    "script": "https://raw.githubusercontent.com/karutoil/karumanage-minecraft/refs/heads/main/hytale-installer.sh",
-    "dir": "/opt/hytale-${INSTANCE_ID}",
-    "deps": ["curl", "unzip", "temurin-25-jre"]
+    "script": "https://raw.githubusercontent.com/karutoil/karumanage-minecraft/refs/heads/main/minecraft-installer-multi.sh",
+    "dir": "/opt/minecraft-${INSTANCE_ID}",
+    "deps": [
+      "curl",
+      "openjdk-21-jre-headless"
+    ],
+    "variants": [
+      {
+        "id": "paper",
+        "name": "PaperMC",
+        "description": "High-performance Minecraft server with extensive plugin support",
+        "versions": [
+          {
+            "version": "latest",
+            "build": "auto",
+            "env": {
+              "INSTALLER_TYPE": "paper",
+              "MINECRAFT_VERSION": "latest"
+            }
+          },
+          {
+            "version": "1.21.1",
+            "build": "latest",
+            "env": {
+              "INSTALLER_TYPE": "paper",
+              "MINECRAFT_VERSION": "1.21.1"
+            }
+          },
+          {
+            "version": "1.21",
+            "build": "latest",
+            "env": {
+              "INSTALLER_TYPE": "paper",
+              "MINECRAFT_VERSION": "1.21"
+            }
+          },
+          {
+            "version": "1.20.6",
+            "build": "latest",
+            "env": {
+              "INSTALLER_TYPE": "paper",
+              "MINECRAFT_VERSION": "1.20.6"
+            }
+          },
+          {
+            "version": "1.20.4",
+            "build": "latest",
+            "env": {
+              "INSTALLER_TYPE": "paper",
+              "MINECRAFT_VERSION": "1.20.4"
+            }
+          },
+          {
+            "version": "1.19.4",
+            "build": "latest",
+            "env": {
+              "INSTALLER_TYPE": "paper",
+              "MINECRAFT_VERSION": "1.19.4"
+            }
+          },
+          {
+            "version": "1.18.2",
+            "build": "latest",
+            "env": {
+              "INSTALLER_TYPE": "paper",
+              "MINECRAFT_VERSION": "1.18.2"
+            }
+          }
+        ]
+      },
+      {
+        "id": "fabric",
+        "name": "Fabric",
+        "description": "Lightweight, experimental modding toolchain for Minecraft",
+        "versions": [
+          {
+            "version": "latest",
+            "build": "auto",
+            "env": {
+              "INSTALLER_TYPE": "fabric",
+              "MINECRAFT_VERSION": "latest"
+            }
+          },
+          {
+            "version": "1.21.1",
+            "env": {
+              "INSTALLER_TYPE": "fabric",
+              "MINECRAFT_VERSION": "1.21.1"
+            }
+          },
+          {
+            "version": "1.21",
+            "env": {
+              "INSTALLER_TYPE": "fabric",
+              "MINECRAFT_VERSION": "1.21"
+            }
+          },
+          {
+            "version": "1.20.6",
+            "env": {
+              "INSTALLER_TYPE": "fabric",
+              "MINECRAFT_VERSION": "1.20.6"
+            }
+          },
+          {
+            "version": "1.20.4",
+            "env": {
+              "INSTALLER_TYPE": "fabric",
+              "MINECRAFT_VERSION": "1.20.4"
+            }
+          },
+          {
+            "version": "1.19.4",
+            "env": {
+              "INSTALLER_TYPE": "fabric",
+              "MINECRAFT_VERSION": "1.19.4"
+            }
+          },
+          {
+            "version": "1.18.2",
+            "env": {
+              "INSTALLER_TYPE": "fabric",
+              "MINECRAFT_VERSION": "1.18.2"
+            }
+          }
+        ]
+      },
+      {
+        "id": "forge",
+        "name": "Forge",
+        "description": "The most popular Minecraft modding platform",
+        "versions": [
+          {
+            "version": "latest",
+            "build": "auto",
+            "env": {
+              "INSTALLER_TYPE": "forge",
+              "MINECRAFT_VERSION": "latest"
+            }
+          },
+          {
+            "version": "1.20.6",
+            "env": {
+              "INSTALLER_TYPE": "forge",
+              "MINECRAFT_VERSION": "1.20.6"
+            }
+          },
+          {
+            "version": "1.20.4",
+            "env": {
+              "INSTALLER_TYPE": "forge",
+              "MINECRAFT_VERSION": "1.20.4"
+            }
+          },
+          {
+            "version": "1.20.1",
+            "env": {
+              "INSTALLER_TYPE": "forge",
+              "MINECRAFT_VERSION": "1.20.1"
+            }
+          },
+          {
+            "version": "1.19.4",
+            "env": {
+              "INSTALLER_TYPE": "forge",
+              "MINECRAFT_VERSION": "1.19.4"
+            }
+          },
+          {
+            "version": "1.18.2",
+            "env": {
+              "INSTALLER_TYPE": "forge",
+              "MINECRAFT_VERSION": "1.18.2"
+            }
+          },
+          {
+            "version": "1.16.5",
+            "env": {
+              "INSTALLER_TYPE": "forge",
+              "MINECRAFT_VERSION": "1.16.5"
+            }
+          }
+        ]
+      },
+      {
+        "id": "geyser",
+        "name": "Geyser",
+        "description": "Bridge between Minecraft: Java Edition and Bedrock Edition",
+        "versions": [
+          {
+            "version": "latest",
+            "build": "latest",
+            "env": {
+              "INSTALLER_TYPE": "geyser",
+              "MINECRAFT_VERSION": "latest"
+            }
+          }
+        ]
+      },
+      {
+        "id": "velocity",
+        "name": "Velocity",
+        "description": "Modern, high-performance Minecraft proxy",
+        "versions": [
+          {
+            "version": "latest",
+            "build": "auto",
+            "env": {
+              "INSTALLER_TYPE": "velocity",
+              "MINECRAFT_VERSION": "latest"
+            }
+          },
+          {
+            "version": "3.3.0",
+            "env": {
+              "INSTALLER_TYPE": "velocity",
+              "MINECRAFT_VERSION": "3.3.0"
+            }
+          },
+          {
+            "version": "3.2.0",
+            "env": {
+              "INSTALLER_TYPE": "velocity",
+              "MINECRAFT_VERSION": "3.2.0"
+            }
+          }
+        ]
+      },
+      {
+        "id": "purpur",
+        "name": "Purpur",
+        "description": "Fork of Paper with additional features and configuration options",
+        "versions": [
+          {
+            "version": "latest",
+            "build": "auto",
+            "env": {
+              "INSTALLER_TYPE": "purpur",
+              "MINECRAFT_VERSION": "latest"
+            }
+          },
+          {
+            "version": "1.21.1",
+            "build": "latest",
+            "env": {
+              "INSTALLER_TYPE": "purpur",
+              "MINECRAFT_VERSION": "1.21.1"
+            }
+          },
+          {
+            "version": "1.21",
+            "build": "latest",
+            "env": {
+              "INSTALLER_TYPE": "purpur",
+              "MINECRAFT_VERSION": "1.21"
+            }
+          },
+          {
+            "version": "1.20.6",
+            "build": "latest",
+            "env": {
+              "INSTALLER_TYPE": "purpur",
+              "MINECRAFT_VERSION": "1.20.6"
+            }
+          },
+          {
+            "version": "1.20.4",
+            "build": "latest",
+            "env": {
+              "INSTALLER_TYPE": "purpur",
+              "MINECRAFT_VERSION": "1.20.4"
+            }
+          }
+        ]
+      },
+      {
+        "id": "pufferfish",
+        "name": "Pufferfish",
+        "description": "Highly optimized Paper fork for large servers",
+        "versions": [
+          {
+            "version": "latest",
+            "build": "auto",
+            "env": {
+              "INSTALLER_TYPE": "pufferfish",
+              "MINECRAFT_VERSION": "latest"
+            }
+          },
+          {
+            "version": "1.21.1",
+            "build": "latest",
+            "env": {
+              "INSTALLER_TYPE": "pufferfish",
+              "MINECRAFT_VERSION": "1.21.1"
+            }
+          },
+          {
+            "version": "1.20.6",
+            "build": "latest",
+            "env": {
+              "INSTALLER_TYPE": "pufferfish",
+              "MINECRAFT_VERSION": "1.20.6"
+            }
+          },
+          {
+            "version": "1.20.4",
+            "build": "latest",
+            "env": {
+              "INSTALLER_TYPE": "pufferfish",
+              "MINECRAFT_VERSION": "1.20.4"
+            }
+          }
+        ]
+      },
+      {
+        "id": "folia",
+        "name": "Folia",
+        "description": "Paper fork that adds regionised multithreading",
+        "versions": [
+          {
+            "version": "latest",
+            "build": "auto",
+            "env": {
+              "INSTALLER_TYPE": "folia",
+              "MINECRAFT_VERSION": "latest"
+            }
+          },
+          {
+            "version": "1.21.1",
+            "build": "latest",
+            "env": {
+              "INSTALLER_TYPE": "folia",
+              "MINECRAFT_VERSION": "1.21.1"
+            }
+          },
+          {
+            "version": "1.20.6",
+            "build": "latest",
+            "env": {
+              "INSTALLER_TYPE": "folia",
+              "MINECRAFT_VERSION": "1.20.6"
+            }
+          },
+          {
+            "version": "1.20.4",
+            "build": "latest",
+            "env": {
+              "INSTALLER_TYPE": "folia",
+              "MINECRAFT_VERSION": "1.20.4"
+            }
+          }
+        ]
+      }
+    ],
+    "env": {
+      "MINECRAFT_USER": "minecraft-srv",
+      "MINECRAFT_GROUP": "minecraft-srv"
+    }
   },
   "uninstall": {
-    "script": "https://raw.githubusercontent.com/karutoil/karumanage-minecraft/refs/heads/main/hytale-uninstall.sh",
+    "script": "https://raw.githubusercontent.com/karutoil/karumanage-minecraft/refs/heads/main/minecraft-uninstall.sh",
     "keepFilesSupported": true
   },
   "runtime": {
-    "start": "systemctl start hytale-server-${INSTANCE_ID}",
-    "stop": "systemctl stop hytale-server-${INSTANCE_ID}",
-    "restart": "systemctl restart hytale-server-${INSTANCE_ID}",
-    "cwd": "/opt/hytale-${INSTANCE_ID}/AppFiles",
+    "start": "systemctl start minecraft-server-${INSTANCE_ID}",
+    "stop": "systemctl stop minecraft-server-${INSTANCE_ID}",
+    "restart": "systemctl restart minecraft-server-${INSTANCE_ID}",
+    "cwd": "/opt/minecraft-${INSTANCE_ID}",
     "env": {
-      "JAVA_OPTS": "-server -Xms4096M -Xmx4096M -XX:MaxMetaspaceSize=512M -XX:+UnlockExperimentalVMOptions -XX:+UseShenandoahGC -XX:ShenandoahGCHeuristics=compact -XX:ShenandoahUncommitDelay=30000 -XX:ShenandoahAllocationThreshold=15 -XX:ShenandoahGuaranteedGCInterval=30000 -XX:+PerfDisableSharedMem -XX:+DisableExplicitGC -XX:+ParallelRefProcEnabled -XX:ParallelGCThreads=4 -XX:ConcGCThreads=2 -XX:+AlwaysPreTouch",
-      "HEAP_MB": "4096",
-      "PORT": "5520",
-      "SERVER_NAME": "Hytale Server",
-      "MAX_PLAYERS": "100",
-      "SERVER_MOTD": ""
+      "JAVA_OPTS": "-Xmx2048M -Xms2048M",
+      "HEAP_MB": "2048",
+      "PORT": "25565",
+      "WORLD_NAME": "world",
+      "MAX_PLAYERS": "20",
+      "SERVER_MOTD": "A Minecraft Server"
     },
     "process": {
-      "match": "HytaleServer.jar",
-      "pidFile": "/var/run/hytale-server-${INSTANCE_ID}.pid"
+      "match": "minecraft|paper|fabric|forge",
+      "pidFile": "/var/run/minecraft-server-${INSTANCE_ID}.pid"
     }
   },
   "metrics": {
@@ -44,13 +404,13 @@
     },
     "players": {
       "method": "log_parse",
-      "file": "/opt/hytale-${INSTANCE_ID}/logs/latest.log",
-      "regex": "\\[(.*?)\\].*Player\\s+(\\w+)\\s+joined"
+      "file": "/opt/minecraft-${INSTANCE_ID}/logs/latest.log",
+      "regex": "\\[(.*?)\\].*\\[(.*?)\\].*joined the game"
     }
   },
   "logs": {
-    "main": "/opt/hytale-${INSTANCE_ID}/logs/latest.log",
-    "journal": "hytale-server-${INSTANCE_ID}",
+    "main": "/opt/minecraft-${INSTANCE_ID}/logs/latest.log",
+    "journal": "minecraft-server-${INSTANCE_ID}",
     "rotate": {
       "strategy": "size",
       "maxBytes": 52428800,
@@ -60,55 +420,78 @@
   "console": {
     "type": "socket",
     "socket": {
-      "path": "/run/hytale-server-${INSTANCE_ID}.socket",
-      "protocol": "hytale-console",
+      "path": "/run/minecraft-server-${INSTANCE_ID}.socket",
+      "protocol": "minecraft-console",
       "method": "write"
-    }
+    },
+    "fallback": "rcon"
   },
   "files": {
     "editable": [
       {
-        "path": "/opt/hytale-${INSTANCE_ID}/AppFiles/Server/config.json",
-        "format": "json"
+        "path": "/opt/minecraft-${INSTANCE_ID}/server.properties",
+        "format": "properties"
+      },
+      {
+        "path": "/opt/minecraft-${INSTANCE_ID}/paper-global.yml",
+        "format": "yaml"
+      },
+      {
+        "path": "/opt/minecraft-${INSTANCE_ID}/spigot.yml",
+        "format": "yaml"
+      },
+      {
+        "path": "/opt/minecraft-${INSTANCE_ID}/config/velocity.toml",
+        "format": "toml"
       }
     ]
   },
   "ports": [
     {
       "name": "game",
+      "protocol": "tcp",
+      "port": 25565
+    },
+    {
+      "name": "query",
       "protocol": "udp",
-      "port": 5520
+      "port": 25565
+    },
+    {
+      "name": "rcon",
+      "protocol": "tcp",
+      "port": 25575
     }
   ],
   "actions": [
     {
       "name": "Save World",
-      "cmd": "save",
+      "cmd": "save-all",
       "method": "socket",
       "timeout": 30
     },
     {
       "name": "Stop Server",
-      "cmd": "shutdown",
+      "cmd": "say Server shutting down in 10 seconds...; stop",
       "method": "socket",
       "timeout": 15
     },
     {
       "name": "List Players",
-      "cmd": "players",
+      "cmd": "list",
       "method": "socket",
       "timeout": 5
     },
     {
       "name": "Server Status",
-      "cmd": "systemctl status hytale-server-${INSTANCE_ID}",
+      "cmd": "systemctl status minecraft-server-${INSTANCE_ID}",
       "method": "exec",
       "timeout": 10
     }
   ],
   "resources": {
-    "cpu": 4,
-    "memoryMB": 16384,
-    "diskMB": 10240
+    "cpu": 2,
+    "memoryMB": 4096,
+    "diskMB": 20480
   }
 }
