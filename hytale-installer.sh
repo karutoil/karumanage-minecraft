@@ -197,8 +197,8 @@ cat > "$ENV_FILE" << 'EOF'
 HEAP_MB={{HEAP_MB}}
 
 # Java options - customize as needed
-# These are the recommended GC settings for Hytale
-JAVA_OPTS=-server -Xms${HEAP_MB}M -Xmx${HEAP_MB}M -XX:MaxMetaspaceSize=512M -XX:+UnlockExperimentalVMOptions -XX:+UseShenandoahGC -XX:ShenandoahGCHeuristics=compact -XX:ShenandoahUncommitDelay=30000 -XX:ShenandoahAllocationThreshold=15 -XX:ShenandoahGuaranteedGCInterval=30000 -XX:+PerfDisableSharedMem -XX:+DisableExplicitGC -XX:+ParallelRefProcEnabled -XX:ParallelGCThreads=4 -XX:ConcGCThreads=2 -XX:+AlwaysPreTouch
+# Heap sizes are defined in ExecStart using HEAP_MB
+JAVA_OPTS=-XX:MaxMetaspaceSize=512M -XX:+UnlockExperimentalVMOptions -XX:+UseShenandoahGC -XX:ShenandoahGCHeuristics=compact -XX:ShenandoahUncommitDelay=30000 -XX:ShenandoahAllocationThreshold=15 -XX:ShenandoahGuaranteedGCInterval=30000 -XX:+PerfDisableSharedMem -XX:+DisableExplicitGC -XX:+ParallelRefProcEnabled -XX:ParallelGCThreads=4 -XX:ConcGCThreads=2 -XX:+AlwaysPreTouch
 EOF
 
 chown "$HYTALE_USER:$HYTALE_GROUP" "$ENV_FILE"
@@ -244,7 +244,7 @@ LimitNOFILE=65536
 
 # Working directory and startup
 WorkingDirectory={{INSTALL_DIR}}/AppFiles
-ExecStart={{JAVA_BIN}} $JAVA_OPTS -jar {{INSTALL_DIR}}/AppFiles/Server/HytaleServer.jar --assets {{INSTALL_DIR}}/AppFiles/Assets.zip --accept-early-plugins
+ExecStart={{JAVA_BIN}} -server -Xms1024m -Xmx${HEAP_MB}M $JAVA_OPTS -jar {{INSTALL_DIR}}/AppFiles/Server/HytaleServer.jar --assets {{INSTALL_DIR}}/AppFiles/Assets.zip --accept-early-plugins
 
 # Graceful shutdown
 KillMode=process
